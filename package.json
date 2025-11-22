@@ -1,0 +1,15 @@
+{
+  "name": "broeckchen-sled",
+  "private": true,
+  "version": "3.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev-host": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
+  }
+}

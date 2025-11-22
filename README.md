@@ -289,6 +289,35 @@ Works in all modern browsers (Chrome, Firefox, Safari, Edge)
 
 Built with vanilla HTML/CSS/JavaScript - no dependencies needed! 🎉
 
+## Local Development
+
+Locally hosting a version for development uses vite (https://vite.dev/), primitively. You're gonna need `npm` for this but not much more. 
+
+### Set up
+
+1) Open the base directory in a terminal (or powershell or console). You should be on the same level as `package.json`.
+2) Execute `npm i` to install the vite dependency.
+
+### Start local 
+
+1) Open the base directory in a terminal (or powershell or console). You should be on the same level as `package.json`.
+2) Execute `npm run dev` to start a local development server. 
+
+The terminal output next to **Local:** will tell you the URL where you can access your local app (most likely it's http://localhost:5173/). Just open that in a browser on the machine where you started the server. 
+
+You can also directly access 
+- the Desktop version: http://localhost:5173/Desktop/index.html
+- the Mobile version: http://localhost:5173/Mobile/index.html
+
+### Start local with hosting for mobile
+
+This option starts a development server which can be accessed by all devices in the same network/WiFi as the host machine. It is useful for e.g. immediately checking changes you've made to the code on your mobile phone. 
+
+1) Open the base directory in a terminal (or powershell or console). You should be on the same level as `package.json`.
+2) Execute `npm run dev-host` to start a local development server. 
+
+The terminal output next to **Network:** will tell you the URL where devices in the same network can access the app (for example, the URL might look like this: http://192.168.178.23:5173/). Just open that URL in your device's browser to access the development app from your host machine. On the host machine, the **Local:** URL will still work.
+
 ## A Word from the "Author": Broeckchen!
 
 Hey! Thank you for checking out and possibly downloading SLEd!
