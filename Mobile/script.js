@@ -3940,6 +3940,8 @@ function setupMobileDropdowns() {
             mobileImportMenu.classList.toggle('show');
             if (mobileExportMenu) mobileExportMenu.classList.remove('show');
             console.log('[mobileImportBtn] Menu is now:', mobileImportMenu.classList.contains('show') ? 'visible' : 'hidden');
+            console.log('[mobileImportBtn] Menu computed style:', window.getComputedStyle(mobileImportMenu).display, window.getComputedStyle(mobileImportMenu).visibility, window.getComputedStyle(mobileImportMenu).opacity);
+            console.log('[mobileImportBtn] Menu position:', mobileImportMenu.getBoundingClientRect());
         });
     }
     
