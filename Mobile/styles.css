@@ -1945,7 +1945,9 @@ body.dark-mode .btn-icon:hover {
     display: none;
     position: absolute;
     top: 100%;
+    left: auto;
     right: 0;
+        max-width: calc(100vw - 1rem);
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
@@ -2307,6 +2309,7 @@ body.dark-mode .menu-logo-dark {
 }
 
 .mobile-dropdown {
+        display: inline-block;
     position: relative;
 }
 
