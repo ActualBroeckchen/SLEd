@@ -396,13 +396,6 @@ function initializeEventListeners() {
             menu.style.display = 'none';
         });
     });
-    
-    // Prevent dropdown menu clicks from closing the dropdown
-    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        menu.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-    });
 
     
     // Search & Replace modal controls
@@ -3934,46 +3927,44 @@ function setupMobileDropdowns() {
     console.log('[setupMobileDropdowns] Starting dropdown setup');
     const mobileImportBtn = document.getElementById('mobileImportBtn');
     const mobileExportBtn = document.getElementById('mobileExportBtn');
-    console.log('[setupMobileDropdowns] Import btn:', mobileImportBtn, 'Export btn:', mobileExportBtn);
     const mobileImportMenu = document.getElementById('mobileImportMenu');
     const mobileExportMenu = document.getElementById('mobileExportMenu');
+    console.log('[setupMobileDropdowns] Buttons found:', {import: !!mobileImportBtn, export: !!mobileExportBtn});
+    console.log('[setupMobileDropdowns] Menus found:', {import: !!mobileImportMenu, export: !!mobileExportMenu});
     
     if (mobileImportBtn && mobileImportMenu) {
         mobileImportBtn.addEventListener('click', (e) => {
+            console.log('[mobileImportBtn] Clicked');
             e.stopPropagation();
+            const wasShown = mobileImportMenu.classList.contains('show');
             mobileImportMenu.classList.toggle('show');
             if (mobileExportMenu) mobileExportMenu.classList.remove('show');
+            console.log('[mobileImportBtn] Menu is now:', mobileImportMenu.classList.contains('show') ? 'visible' : 'hidden');
         });
     }
     
     if (mobileExportBtn && mobileExportMenu) {
         mobileExportBtn.addEventListener('click', (e) => {
+            console.log('[mobileExportBtn] Clicked');
             e.stopPropagation();
+            const wasShown = mobileExportMenu.classList.contains('show');
             mobileExportMenu.classList.toggle('show');
             if (mobileImportMenu) mobileImportMenu.classList.remove('show');
+            console.log('[mobileExportBtn] Menu is now:', mobileExportMenu.classList.contains('show') ? 'visible' : 'hidden');
         });
     }
     
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', () => {
+    // Close dropdowns when clicking outside (NOT on menu items)
+    document.addEventListener('click', (e) => {
+        // Don't close if clicking inside a dropdown menu
+        if (e.target.closest('.mobile-dropdown-menu')) {
+            console.log('[Document click] Inside dropdown menu, not closing');
+            return;
+        }
+        console.log('[Document click] Outside menus, closing all');
         if (mobileImportMenu) mobileImportMenu.classList.remove('show');
         if (mobileExportMenu) mobileExportMenu.classList.remove('show');
     });
-    
-    // Prevent dropdown menu clicks from closing the dropdown
-    if (mobileImportMenu) {
-        mobileImportMenu.addEventListener('click', (e) => {
-            console.log('[mobileImportMenu] Click detected on:', e.target, 'ID:', e.target.id, 'Class:', e.target.className);
-            e.stopPropagation();
-        });
-    }
-
-    if (mobileExportMenu) {
-        mobileExportMenu.addEventListener('click', (e) => {
-            console.log('[mobileExportMenu] Click detected on:', e.target, 'ID:', e.target.id, 'Class:', e.target.className);
-            e.stopPropagation();
-        });
-    }
 }
 
 // Setup navigation indicators
