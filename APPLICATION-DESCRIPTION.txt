@@ -1,0 +1,95 @@
+Simple Lorebook Editor (SLEd) - Repository Overview and App Description
+
+Summary
+- Purpose: A lightweight, browser-based editor for SillyTavern lorebook JSON files, focused on usability, accessibility, and multi-entry workflows.
+- Form factors: Desktop web app and Mobile web app (installable PWA).
+- Tech stack: Vanilla HTML/CSS/JavaScript. No runtime dependencies.
+- Distribution: Can run directly from static files (open index.html) or via a dev server; mobile variant supports PWA install with offline caching via a service worker.
+
+Core Capabilities
+- Multi-entry editing: Open several lorebook entries in tabs; side-by-side mode to compare and copy between entries; unsaved-change indicator (orange dot) per tab.
+- Entry management: Insert above/below, copy/duplicate, delete from the sidebar without opening; smart UID-based reordering (renumbering to avoid conflicts) and drag-and-drop ordering; bulk multi-select + drag.
+- Import/Merge: Replace current lorebook or import another to select entries for merging; automatic UID renumbering during merge.
+- Search & replace: Global find across Content, Keywords, Names, or All; case-sensitive, whole-word, and regex options; modes for Find All, Replace Next, Replace All; result previews with navigation.
+- Export: Export standard SillyTavern lorebook JSON; export human-readable .txt with configurable sections (titles, content, keywords, logic, comments, order numbers, etc.).
+- Accessibility: Dark mode toggle, dyslexia-friendly font (OpenDyslexic), saved preferences, WCAG-compliant contrast, three zoom levels for the sidebar (Detailed, Normal, Compact - entries take up only one row in compact mode).
+
+Lorebook Model Support
+- Main editing fields: Activation type, Name/Title, Primary Keywords, Secondary Keywords + logic, Content.
+- Advanced settings (collapsed by default):
+  - Character Filter: include/exclude by names or tags.
+  - Generation Triggers: Normal, Continue, Impersonate, Swipe, Regenerate, Quiet.
+  - Additional Matching Sources: persona, character data, scenario, creator's notes, etc.
+  - Positioning: Insertion Position with human-readable options (^Char, vChar, ^AN, vAN, @D, ^EM, vEM, Outlet).
+  - Depth/Role for @D: Insertion Depth and Role (System/User/Assistant).
+  - Outlet name for Outlet position; optional Scan Depth override.
+  - Timing/Probability: probability, sticky, cooldown, delay.
+  - Recursion options: exclude/prevent recursion, delay until recursion, ignore budget.
+  - Per-entry overrides: case sensitivity, whole word matching, group scoring.
+
+Keyboard Shortcuts (selected)
+- File: Ctrl+I (Import), Ctrl+E (Export), Ctrl+M (Import for Merging).
+- Entry: Ctrl+N (New), Ctrl+S (Save), Ctrl+W (Close Tab).
+- Navigation: Ctrl+Tab / Ctrl+Shift+Tab.
+- Search & Replace: Ctrl+H (open), Enter (Find All), Shift+Enter (Replace Next), Ctrl+Enter (Replace All).
+- Display: Ctrl+D (Dark Mode), Ctrl+Shift+A (Dyslexia Font), Ctrl+- / Ctrl++ (sidebar zoom).
+- Help: F1 or Shift+? (show README).
+
+Project Structure
+- Root static entry: index.html - landing page/switchboard to Desktop and Mobile variants.
+- Desktop/: desktop web app
+  - index.html: main UI
+  - styles.css: desktop styling
+  - script.js: desktop logic (multi-tab editing, merge, reorder, search/replace, export)
+  - README.md, README_OLD.md, DOCUMENTATION.md: additional docs
+- Mobile/: mobile web app (PWA)
+  - index.html: mobile UI
+  - styles.css: mobile styling
+  - script.js: mobile logic
+  - manifest.json: PWA metadata (name, icons, colors, standalone display, portrait orientation)
+  - service-worker.js: offline cache and update lifecycle (install/activate/fetch/message)
+- Mobile-Example/: minimal example variant (index.html, styles.css, script.js) for demonstration/testing.
+- Assets: Sledlogo.png, SledlogoLight.png, SledlogoDark.png, SledlogoMono.png used across variants and PWA icons.
+- Docs: README.md (primary), QUICKSTART-PWA.md, README-PWA-FORK.md, PWA-IMPLEMENTATION-SUMMARY.md.
+- Package: package.json with Vite dev tooling; package-lock.json.
+
+Mobile PWA Details
+- Manifest (Mobile/manifest.json):
+  - Name: "SLEd - Simple Lorebook Editor"; Short name: "SLEd"; Version: 3.4.
+  - Start URL: ./index.html; Display: standalone; Theme/Background: #faf7f2; Orientation: portrait.
+  - Icons: 192px and 512px mobile icons plus references to repository logos.
+  - Categories: productivity, utilities.
+- Service worker (Mobile/service-worker.js):
+  - Cache name: sled-mobile-v8.
+  - Precache list: mobile HTML/CSS/JS, logo assets, Google Fonts (Fredericka the Great, Noto Sans, Lexend Deca, Merriweather, Material Symbols).
+  - Install: opens cache and adds resources; skipWaiting.
+  - Activate: deletes old caches; clients.claim.
+  - Fetch: cache-first; falls back to network; caches successful 200/basic responses; navigate fallback to ./index.html.
+  - Message: responds to { type: 'SKIP_WAITING' } to promote updates.
+
+Desktop App Highlights
+- Optimized layout for larger screens with clear separation of sidebar and editor.
+- Side-by-side tab view (multi-pane) to compare entries simultaneously.
+- Visual affordances for unsaved changes and quick sidebar actions (insert/copy/delete).
+- Drag-and-drop reordering and UID-based numeric ordering.
+
+Design & Accessibility
+- Clean, uncluttered layout with good spacing and a focus on readability.
+- Toggleable dark mode with high contrast; OpenDyslexic font option.
+- Sidebar zoom levels (Compact/Normal/Detailed).
+
+Data Model and Workflow Notes
+- Entries have a UID (number) used for ordering; edits to the UID reflow the list.
+- Primary/Secondary keywords with logic define activation behavior; "Selective" mode auto-toggles based on secondary keywords presence.
+- Advanced fields allow precise control over insertion position, timing/probability, recursion, and matching sources.
+- Merge workflow ensures conflicts are resolved via automatic renumbering and per-entry selection.
+
+Compatibility & Deployment
+- Works in modern browsers (Chrome, Firefox, Safari, Edge).
+- Static hosting-friendly: GitHub Pages or any static host.
+- Mobile variant is installable as a PWA with offline support.
+
+Licensing and Attribution
+- LICENSE present in repository (see file for terms).
+- App branding: SLEd logos are hand drawn by the author; keep variations if possible when forking.
+- Authorship note (README): Project was "vibecoded" with AI assistance; free to fork/iterate; not for sale.
