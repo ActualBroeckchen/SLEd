@@ -3,17 +3,27 @@
  * Provides offline caching and PWA functionality
  */
 
-const CACHE_NAME = 'sled-v1';
+const CACHE_NAME = 'sled-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './styles.css',
-    './script.js',
     './manifest.json',
     './Sledlogo.png',
     './SledlogoLight.png',
     './SledlogoDark.png',
     './SledlogoMono.png',
+    // JavaScript modules
+    './js/main.js',
+    './js/state.js',
+    './js/elements.js',
+    './js/utils.js',
+    './js/ui.js',
+    './js/entries.js',
+    './js/tabs.js',
+    './js/sidebar.js',
+    './js/search.js',
+    './js/file-io.js',
     // Google Fonts
     'https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Lexend+Deca:wght@300;400;500;600&family=Noto+Sans:wght@300;400;500;600&family=OpenDyslexic:wght@400;700&display=swap',
     'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0'
