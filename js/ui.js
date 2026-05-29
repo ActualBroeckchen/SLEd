@@ -32,6 +32,11 @@ export function applyTheme() {
             ? 'Switch to light mode (Ctrl+D)'
             : 'Switch to dark mode (Ctrl+D)';
     }
+    // Keep the mobile address bar / PWA chrome in sync with the theme
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+        meta.setAttribute('content', theme === 'dark' ? '#1a1815' : '#faf7f2');
+    }
 }
 
 export function applyEditorFont() {
