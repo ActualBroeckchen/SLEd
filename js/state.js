@@ -14,16 +14,13 @@ export const state = {
     filterText: '',
     mergeStaging: null,
     mergeSelected: new Set(),
+    scriptImportStaging: null,
     settings: {
         theme: 'light',
         dyslexiaFont: false,
         editorFont: 'mono',
         sidebarZoom: 'normal',
         sideBySide: false,
-        // Legacy quick-flags (kept for back-compat with older exports)
-        exportTitles: true,
-        exportKeywords: true,
-        exportComments: false,
         // Granular text-export prefs
         txtIncludeTitles: true,
         txtIncludeContent: true,
@@ -129,4 +126,5 @@ export function resetState() {
     state.filterText = '';
     state.mergeStaging = null;
     state.mergeSelected = new Set();
+    state.scriptImportStaging = null;
 }

@@ -8,6 +8,7 @@ import { downloadFile, escapeHtml, getStatusIcon } from './utils.js';
 import { showToast, openModal, closeModal, updateSidebarHeader, showWelcome } from './ui.js';
 import { renderSidebar } from './sidebar.js';
 import { closeAllTabs } from './tabs.js';
+import { parseLorebookScript, convertParsedToLorebook, summariseParsed } from './script-import.js';
 
 /**
  * Create a new lorebook
@@ -54,15 +55,23 @@ export function createNewLorebook() {
  */
 export function importLorebook(file) {
     if (!file) return;
-    
+
+    // Route .js / .txt files (or anything that doesn't sniff as JSON) through
+    // the orchestrator-script importer.
+    const name = (file.name || '').toLowerCase();
+    if (name.endsWith('.js') || name.endsWith('.txt')) {
+        importLorebookFromScript(file);
+        return;
+    }
+
     if (state.hasUnsavedChanges) {
         if (!confirm('You have unsaved changes. Import new lorebook anyway?')) {
             return;
         }
     }
-    
+
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
@@ -147,12 +156,12 @@ export function exportLorebookAsText(opts = {}) {
 
     const s = state.settings;
     const cfg = {
-        titles: opts.titles ?? s.txtIncludeTitles ?? s.exportTitles ?? true,
+        titles: opts.titles ?? s.txtIncludeTitles ?? true,
         content: opts.content ?? s.txtIncludeContent ?? true,
-        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? s.exportKeywords ?? true,
+        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? true,
         secondaryKeys: opts.secondaryKeys ?? s.txtIncludeSecondaryKeys ?? false,
         status: opts.status ?? s.txtIncludeStatus ?? false,
-        comments: opts.comments ?? s.txtIncludeComments ?? s.exportComments ?? false,
+        comments: opts.comments ?? s.txtIncludeComments ?? false,
         order: opts.order ?? s.txtIncludeOrder ?? false
     };
 
@@ -432,4 +441,125 @@ export function setupFileDropHandlers() {
     document.body.addEventListener('dragover', handleDragOver);
     document.body.addEventListener('dragleave', handleDragLeave);
     document.body.addEventListener('drop', handleFileDrop);
+}
+
+/* ---------- Orchestrator-script importer ---------- */
+
+/**
+ * Read a .js / .txt file, parse it as an orchestrator script, and open
+ * the script-import modal so the user can pick replace vs merge.
+ */
+export function importLorebookFromScript(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const parsed = parseLorebookScript(e.target.result);
+        if (parsed.error) {
+            console.error('Script parse error:', parsed.error);
+            showToast(`Failed to parse script: ${parsed.error}`, 'error');
+            return;
+        }
+        const summary = summariseParsed(parsed);
+        if (summary.total === 0) {
+            showToast(
+                'No recognised lorebook structures found in script ' +
+                '(expected PACK_*, coreRules, LOCATIONS, or ENCOUNTER_CHOICES).',
+                'error'
+            );
+            return;
+        }
+
+        const lorebook = convertParsedToLorebook(parsed, file.name);
+        state.scriptImportStaging = { lorebook, summary, fileName: file.name };
+        renderScriptImportSummary();
+        openModal('scriptImportModal');
+    };
+    reader.onerror = () => showToast('Failed to read file', 'error');
+    reader.readAsText(file);
+}
+
+function renderScriptImportSummary() {
+    const stage = state.scriptImportStaging;
+    const sourceEl = document.getElementById('scriptImportSource');
+    const summaryEl = document.getElementById('scriptImportSummary');
+    if (!stage || !sourceEl || !summaryEl) return;
+
+    sourceEl.textContent = stage.fileName;
+
+    const s = stage.summary;
+    const items = [];
+    if (s.coreRules) items.push('<li>1 core ruleset (Constant entry)</li>');
+    if (s.packCount) items.push(`<li>${s.packCount} pack${s.packCount === 1 ? '' : 's'} (${s.packRuleCount} rule${s.packRuleCount === 1 ? '' : 's'})</li>`);
+    if (s.locationCount) items.push(`<li>${s.locationCount} location${s.locationCount === 1 ? '' : 's'} (sticky scene entries)</li>`);
+    if (s.encounterCount) items.push(`<li>${s.encounterCount} encounter${s.encounterCount === 1 ? '' : 's'} (probabilistic, gated by location)</li>`);
+
+    summaryEl.innerHTML = `
+        <p class="script-import-total">Detected <strong>${s.total}</strong> entries to import:</p>
+        <ul class="script-import-list">${items.join('')}</ul>
+    `;
+}
+
+/**
+ * Apply the staged script-import as a full replacement of the current
+ * lorebook. Mirrors what importLorebook does for JSON.
+ */
+export function applyScriptImportReplace() {
+    const stage = state.scriptImportStaging;
+    if (!stage) return;
+
+    if (state.hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Replace the current lorebook anyway?')) {
+            return;
+        }
+    }
+
+    const settings = state.settings;
+    resetState();
+    state.settings = settings;
+    state.lorebookData = stage.lorebook;
+    state.fileName = stage.fileName;
+    clearUnsaved();
+
+    closeAllTabs();
+    updateSidebarHeader();
+    renderSidebar();
+    showWelcome();
+    saveSession();
+
+    closeModal('scriptImportModal');
+    state.scriptImportStaging = null;
+    showToast(`Imported ${stage.summary.total} entries from ${stage.fileName}`, 'success');
+}
+
+/**
+ * Apply the staged script-import via the existing merge flow — hands
+ * the parsed lorebook off to the merge modal so the user can pick which
+ * entries to bring in.
+ */
+export function applyScriptImportMerge() {
+    const stage = state.scriptImportStaging;
+    if (!stage) return;
+
+    if (!state.lorebookData) {
+        showToast('Load or create a lorebook first', 'error');
+        return;
+    }
+
+    state.mergeStaging = stage.lorebook;
+    state.mergeSelected = new Set(
+        Object.keys(stage.lorebook.entries).map(k => parseInt(k, 10))
+    );
+
+    closeModal('scriptImportModal');
+    state.scriptImportStaging = null;
+    renderMergeList();
+    openModal('mergeModal');
+}
+
+export function cancelScriptImport() {
+    state.scriptImportStaging = null;
+    closeModal('scriptImportModal');
+    const input = document.getElementById('file-input');
+    if (input) input.value = '';
 }

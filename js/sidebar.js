@@ -151,6 +151,11 @@ function setupSidebarEventListeners() {
                 return;
             }
             import('./entries.js').then(({ openEntry }) => openEntry(uid));
+            // On mobile, the sidebar is a drawer over the editor — picking
+            // an entry should reveal the form, so close the drawer.
+            if (window.matchMedia('(max-width: 767px)').matches) {
+                import('./ui.js').then(({ closeSidebar }) => closeSidebar());
+            }
         });
 
         // Multi-select checkbox

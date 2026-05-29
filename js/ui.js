@@ -10,7 +10,10 @@ import {
     buildEntryFormHtml,
     field,
     activationRadios,
-    triggerCheckboxes
+    triggerCheckboxes,
+    setKeywordPills,
+    getKeywordValues,
+    wireKeywordPillInput
 } from './form-template.js';
 
 /* ---------- Theme & Font ---------- */
@@ -18,12 +21,6 @@ import {
 export function applyTheme() {
     const theme = state.settings.theme;
     document.documentElement.setAttribute('data-theme', theme);
-    if (elements.themeLightBtn) {
-        elements.themeLightBtn.classList.toggle('active', theme === 'light');
-    }
-    if (elements.themeDarkBtn) {
-        elements.themeDarkBtn.classList.toggle('active', theme === 'dark');
-    }
     if (elements.themeToggle) {
         const icon = elements.themeToggle.querySelector('.material-symbols-rounded');
         if (icon) icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
@@ -68,18 +65,11 @@ export function applySidebarZoom() {
     }
 }
 
-export function applyExportPrefs() {
-    if (elements.exportTitles) elements.exportTitles.checked = !!state.settings.exportTitles;
-    if (elements.exportKeywords) elements.exportKeywords.checked = !!state.settings.exportKeywords;
-    if (elements.exportComments) elements.exportComments.checked = !!state.settings.exportComments;
-}
-
 export function applyAllSettings() {
     applyTheme();
     applyDyslexiaFont();
     applyEditorFont();
     applySidebarZoom();
-    applyExportPrefs();
 }
 
 /* ---------- Sidebar (mobile drawer) ---------- */
@@ -270,8 +260,8 @@ export function populateForm(uid, entry) {
 
     // Basic
     set('entryName', entry.comment || '');
-    set('primaryKeywords', (entry.key || []).join(', '));
-    set('secondaryKeywords', (entry.keysecondary || []).join(', '));
+    setKeywordPills(uid, 'primaryKeywords', entry.key || []);
+    setKeywordPills(uid, 'secondaryKeywords', entry.keysecondary || []);
     set('selectiveLogic', entry.selectiveLogic ?? 0);
     set('entryContent', entry.content || '');
 
@@ -375,8 +365,8 @@ export function getFormData(uid) {
 
     // Basic
     if (v('entryName') !== undefined) data.comment = v('entryName');
-    if (v('primaryKeywords') !== undefined) data.key = splitCsv(v('primaryKeywords'));
-    if (v('secondaryKeywords') !== undefined) data.keysecondary = splitCsv(v('secondaryKeywords'));
+    data.key = getKeywordValues(uid, 'primaryKeywords');
+    data.keysecondary = getKeywordValues(uid, 'secondaryKeywords');
     if (v('selectiveLogic') !== undefined) data.selectiveLogic = parseInt(v('selectiveLogic'), 10) || 0;
     if (v('entryContent') !== undefined) data.content = v('entryContent');
 
@@ -492,6 +482,9 @@ function attachFormListeners(uid) {
     if (positionSelect) {
         positionSelect.addEventListener('change', () => updatePositionRowVisibility(uid));
     }
+
+    // Wire keyword pill containers (Enter, comma, Backspace, paste, ×, blur)
+    form.querySelectorAll('.keyword-pill-input').forEach(wireKeywordPillInput);
 
     const autoSave = debounce(() => {
         if (!state.lorebookData?.entries) return;

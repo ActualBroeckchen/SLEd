@@ -874,7 +874,10 @@ kbd {
 }
 
 .radio-pill {
-    display: block;
+    /* Equal share so Keyword / Constant / Disabled fit one row even on
+       narrow phones. Center label so short words don't look uneven. */
+    flex: 1 1 0;
+    min-width: 0;
     cursor: pointer;
 }
 
@@ -886,11 +889,12 @@ kbd {
 
 .radio-pill span {
     display: block;
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-sm) var(--space-sm);
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
     font-size: 0.875rem;
+    text-align: center;
     transition: all var(--transition-fast);
 }
 
@@ -1119,6 +1123,11 @@ kbd {
 .modal {
     position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    overflow: hidden;
     background: rgba(0, 0, 0, 0.5);
     /* User-agent <dialog> resets color to CanvasText when open in the top
        layer; restore inheritance so theme variables apply inside the modal. */
@@ -1420,7 +1429,9 @@ kbd {
 
 .toast-container {
     position: fixed;
-    bottom: calc(var(--action-bar-height) + var(--space-md));
+    /* Mobile: top, below the header — keeps the action bar / form bottom
+       fully visible. Desktop override below switches to bottom-right. */
+    top: calc(var(--header-height) + var(--space-sm));
     left: var(--space-md);
     right: var(--space-md);
     display: flex;
@@ -1554,17 +1565,22 @@ kbd {
         align-items: center;
         padding: var(--space-xl);
     }
-    
+
     .modal-content {
         max-width: 500px;
+        /* Padding on .modal eats viewport height; clamp so content stays
+           inside the padded box and the modal corners are always visible. */
+        max-height: calc(100vh - 2 * var(--space-xl));
         border-radius: var(--border-radius-lg);
     }
-    
+
     .modal-content.large {
         max-width: 700px;
+        max-height: calc(100vh - 2 * var(--space-xl));
     }
     
     .toast-container {
+        top: auto;
         bottom: var(--space-xl);
         left: auto;
         right: var(--space-xl);
@@ -1827,4 +1843,147 @@ kbd {
 
 .entry-editor[data-view="side-by-side"] .entry-form:last-child {
     border-right: none;
+}
+
+/* ========================================
+   Keyword pill input (in-form)
+   ======================================== */
+
+.keyword-pill-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    cursor: text;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.keyword-pill-input:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+    outline: none;
+}
+
+.keyword-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-light);
+    color: var(--text-primary);
+    padding: 2px 4px 2px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    max-width: 100%;
+}
+
+.keyword-pill .text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 22em;
+}
+
+.keyword-pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.keyword-pill-remove:hover,
+.keyword-pill-remove:focus {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.keyword-pill-entry {
+    flex: 1 1 8em;
+    min-width: 8em;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    outline: none;
+    padding: 4px 2px;
+}
+
+.keyword-pill-entry::placeholder {
+    color: var(--text-muted);
+}
+
+.form-hint code {
+    font-family: var(--font-editor-mono);
+    background: var(--bg-tertiary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+/* ========================================
+   Script Import Modal
+   ======================================== */
+
+.script-import-source {
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.script-import-source strong {
+    color: var(--text-primary);
+    font-family: var(--font-editor-mono);
+    word-break: break-all;
+}
+
+.script-import-total {
+    margin-bottom: var(--space-sm);
+}
+
+.script-import-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-lg);
+}
+
+.script-import-list li {
+    padding: var(--space-xs) var(--space-sm);
+    border-left: 3px solid var(--accent);
+    margin-bottom: var(--space-xs);
+    background: var(--accent-light);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    font-size: 0.9rem;
+}
+
+.script-import-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--warning);
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.script-import-warning .material-symbols-rounded {
+    color: var(--warning);
+    flex-shrink: 0;
+    font-size: 20px;
 }

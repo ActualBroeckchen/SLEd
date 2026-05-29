@@ -212,45 +212,12 @@
             <div class="modal-body">
                 <fieldset class="form-fieldset">
                     <legend>Appearance</legend>
-                    
-                    <div class="form-row">
-                        <label class="form-label">Theme</label>
-                        <div class="toggle-group">
-                            <button class="toggle-btn active" data-theme="light" id="themeLightBtn">
-                                <span class="material-symbols-rounded">light_mode</span>
-                                Light
-                            </button>
-                            <button class="toggle-btn" data-theme="dark" id="themeDarkBtn">
-                                <span class="material-symbols-rounded">dark_mode</span>
-                                Dark
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="form-row">
                         <label class="checkbox-label">
                             <input type="checkbox" id="dyslexiaFont">
                             <span>Use OpenDyslexic font</span>
                         </label>
-                    </div>
-                </fieldset>
-
-                <fieldset class="form-fieldset">
-                    <legend>Export Options</legend>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="exportTitles" checked>
-                            <span>Include titles in text export</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="exportKeywords" checked>
-                            <span>Include keywords in text export</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="exportComments">
-                            <span>Include comments in text export</span>
-                        </label>
+                        <small class="form-hint">Theme and editor font are in the header toolbar.</small>
                     </div>
                 </fieldset>
 
@@ -263,7 +230,7 @@
                         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>N</kbd> <span>New Entry</span></div>
                         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> <span>Save Entry</span></div>
                         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>W</kbd> <span>Close Tab</span></div>
-                        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>H</kbd> <span>Search & Replace</span></div>
+                        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>H</kbd> <span>Search &amp; Replace</span></div>
                         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>D</kbd> <span>Toggle Dark Mode</span></div>
                     </div>
                 </fieldset>
@@ -398,6 +365,31 @@
         </div>
     </dialog>
 
+    <!-- Script Import Modal (orchestrator-script importer) -->
+    <dialog class="modal" id="scriptImportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import from JavaScript</h2>
+                <button class="icon-btn" id="closeScriptImportModal" aria-label="Close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="script-import-source"><strong id="scriptImportSource"></strong></p>
+                <div id="scriptImportSummary"></div>
+                <div class="script-import-warning">
+                    <span class="material-symbols-rounded">warning</span>
+                    <span>This file contains JavaScript that was executed in your browser to extract these entries. Only proceed if you trust the source.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="scriptImportCancelBtn">Cancel</button>
+                <button class="btn secondary" id="scriptImportMergeBtn">Merge</button>
+                <button class="btn primary" id="scriptImportReplaceBtn">Replace</button>
+            </div>
+        </div>
+    </dialog>
+
     <!-- Merge Modal -->
     <dialog class="modal" id="mergeModal">
         <div class="modal-content large">
@@ -423,7 +415,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Hidden file inputs -->
-    <input type="file" id="file-input" accept=".json" style="display: none;">
+    <input type="file" id="file-input" accept=".json,.js,.txt" style="display: none;">
     <input type="file" id="merge-file-input" accept=".json" style="display: none;">
 
     <script type="module" src="js/main.js"></script>
