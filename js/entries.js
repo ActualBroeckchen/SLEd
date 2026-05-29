@@ -6,7 +6,7 @@
 import { state } from './state.js';
 import { elements } from './elements.js';
 import { createDefaultEntry, getStatusIcon } from './utils.js';
-import { populateForm, getFormData, clearForm, showToast, updateSidebarHeader } from './ui.js';
+import { populateForm, getFormData, clearForm, showToast, updateSidebarHeader, showEditor } from './ui.js';
 import { addTab, switchToTab, closeTab, updateTabTitle } from './tabs.js';
 import { renderSidebar } from './sidebar.js';
 
@@ -79,17 +79,17 @@ export function openEntry(uid) {
         return;
     }
     
-    // Add new tab
+    // Add new tab (also sets currentEntryUid and calls showEditor)
     addTab(uid, entry.comment || `Entry ${uid}`);
-    
-    // Set as current entry
-    state.currentEntryUid = uid;
-    
+
     // Populate form
     populateForm(entry);
-    
-    // Update sidebar selection
-    updateSidebarSelection();
+
+    // Make sure editor area is visible
+    showEditor();
+
+    // Update sidebar selection / sidebar (to mark .active)
+    renderSidebar();
 }
 
 /**
@@ -185,12 +185,12 @@ export function toggleEntryEnabled(uid) {
     
     entry.disable = !entry.disable;
     state.hasUnsavedChanges = true;
-    
+
     // Update form if this is the current entry
-    if (state.currentEntryUid === uid && elements.entryEnabled) {
-        elements.entryEnabled.checked = !entry.disable;
+    if (state.currentEntryUid === uid) {
+        populateForm(entry);
     }
-    
+
     renderSidebar();
 }
 
@@ -198,16 +198,14 @@ export function toggleEntryEnabled(uid) {
  * Update the sidebar selection to highlight current entry
  */
 export function updateSidebarSelection() {
-    // Remove previous selection
-    document.querySelectorAll('.entry-item.selected').forEach(el => {
-        el.classList.remove('selected');
+    document.querySelectorAll('.entry-item.active').forEach(el => {
+        el.classList.remove('active');
     });
-    
-    // Add selection to current entry
+
     if (state.currentEntryUid !== null) {
         const item = document.querySelector(`.entry-item[data-uid="${state.currentEntryUid}"]`);
         if (item) {
-            item.classList.add('selected');
+            item.classList.add('active');
         }
     }
 }

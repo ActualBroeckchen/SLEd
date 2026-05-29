@@ -22,9 +22,11 @@ export function createNewLorebook() {
     
     const name = prompt('Enter lorebook name:', 'New Lorebook');
     if (name === null) return;
-    
+
+    const settings = state.settings;
     resetState();
-    
+    state.settings = settings;
+
     state.lorebookData = {
         name: name || 'New Lorebook',
         description: '',
@@ -69,16 +71,20 @@ export function importLorebook(file) {
                 throw new Error('Invalid lorebook format: missing entries');
             }
             
+            // Preserve settings (resetState clears state but settings live on `state.settings`)
+            const settings = state.settings;
             resetState();
+            state.settings = settings;
             state.lorebookData = data;
             state.fileName = file.name;
-            
+
+            closeAllTabs();
             updateSidebarHeader();
             renderSidebar();
-            closeAllTabs();
             showWelcome();
-            
-            showToast(`Loaded ${file.name}`, 'success');
+
+            const count = data.entries ? Object.keys(data.entries).length : 0;
+            showToast(`Loaded ${file.name} (${count} ${count === 1 ? 'entry' : 'entries'})`, 'success');
             
         } catch (error) {
             console.error('Import error:', error);
@@ -121,6 +127,51 @@ export function exportLorebook(pretty = true) {
 }
 
 /**
+ * Export the current lorebook as plain text
+ */
+export function exportLorebookAsText() {
+    if (!state.lorebookData) {
+        showToast('No lorebook to export', 'error');
+        return;
+    }
+
+    try {
+        const { exportTitles, exportKeywords, exportComments } = state.settings;
+        const entries = Object.values(state.lorebookData.entries || {})
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const lines = [];
+        lines.push(`# ${state.lorebookData.name || 'Lorebook'}`);
+        lines.push('');
+
+        entries.forEach(entry => {
+            if (exportTitles && entry.comment) {
+                lines.push(`## ${entry.comment}`);
+            }
+            if (exportKeywords && (entry.key || []).length > 0) {
+                lines.push(`Keywords: ${(entry.key || []).join(', ')}`);
+            }
+            if (exportComments && entry.comment) {
+                lines.push(`Comment: ${entry.comment}`);
+            }
+            lines.push(entry.content || '');
+            lines.push('');
+            lines.push('---');
+            lines.push('');
+        });
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+        const baseName = (state.fileName || 'lorebook').replace(/\.json$/i, '');
+        downloadFile(blob, `${baseName}.txt`);
+
+        showToast('Lorebook exported as text', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Failed to export as text', 'error');
+    }
+}
+
+/**
  * Export selected entries only
  * @param {Array<number>} uids - Array of entry UIDs to export
  */
@@ -159,16 +210,22 @@ export function exportSelectedEntries(uids) {
 /**
  * Open the merge modal
  */
+/**
+ * Start the merge flow: prompt for a file, then merge it in.
+ * (The modal-based entry-by-entry picker isn't wired yet; this does a
+ * direct merge with sensible defaults.)
+ */
 export function openMergeModal() {
-    openModal('merge-modal');
+    if (!state.lorebookData) {
+        showToast('Load or create a lorebook before merging', 'error');
+        return;
+    }
+    const input = document.getElementById('merge-file-input');
+    if (input) input.click();
 }
 
-/**
- * Close the merge modal
- */
 export function closeMergeModal() {
-    closeModal('merge-modal');
-    // Clear merge file input
+    closeModal('mergeModal');
     const input = document.getElementById('merge-file-input');
     if (input) input.value = '';
 }

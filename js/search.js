@@ -93,12 +93,17 @@ export function performSearch() {
         return;
     }
     
+    const scope = searchState.options.searchIn;
+    const searchKeys = scope === 'all' || scope === 'keywords';
+    const searchContent = scope === 'all' || scope === 'content';
+    const searchComments = scope === 'all' || scope === 'names';
+
     // Search through entries
     Object.entries(state.lorebookData.entries).forEach(([uid, entry]) => {
         const uidNum = parseInt(uid);
-        
+
         // Search in keys
-        if (searchState.options.searchIn === 'all' || searchState.options.searchIn === 'keys') {
+        if (searchKeys) {
             (entry.key || []).forEach((key, keyIndex) => {
                 let match;
                 while ((match = pattern.exec(key)) !== null) {
@@ -132,7 +137,7 @@ export function performSearch() {
         }
         
         // Search in content
-        if (searchState.options.searchIn === 'all' || searchState.options.searchIn === 'content') {
+        if (searchContent) {
             const content = entry.content || '';
             let match;
             while ((match = pattern.exec(content)) !== null) {
@@ -154,8 +159,8 @@ export function performSearch() {
             }
         }
         
-        // Search in comments
-        if (searchState.options.searchIn === 'all' || searchState.options.searchIn === 'comments') {
+        // Search in comments (entry name)
+        if (searchComments) {
             const comment = entry.comment || '';
             let match;
             while ((match = pattern.exec(comment)) !== null) {
@@ -248,14 +253,16 @@ function goToResult(index) {
             let field;
             switch (result.field) {
                 case 'key':
+                    field = document.getElementById('primaryKeywords');
+                    break;
                 case 'keysecondary':
-                    field = document.getElementById(result.field === 'key' ? 'entry-keys' : 'entry-secondary-keys');
+                    field = document.getElementById('secondaryKeywords');
                     break;
                 case 'content':
-                    field = document.getElementById('entry-content');
+                    field = document.getElementById('entryContent');
                     break;
                 case 'comment':
-                    field = document.getElementById('entry-comment');
+                    field = document.getElementById('entryName');
                     break;
             }
             if (field) {

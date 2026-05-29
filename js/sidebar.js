@@ -45,34 +45,53 @@ export function renderSidebar() {
     if (!elements.entryList) return;
     
     const entries = getFilteredEntries();
-    
+
     if (entries.length === 0) {
-        elements.entryList.innerHTML = `
-            <div class="empty-state">
-                <span class="material-symbols-rounded">search_off</span>
-                <p>${state.filterText ? 'No entries match your filter' : 'No entries yet'}</p>
-            </div>
-        `;
+        if (!state.lorebookData) {
+            // No lorebook loaded — show the welcome/import empty state
+            elements.entryList.innerHTML = `
+                <div class="empty-state" id="emptyState">
+                    <span class="material-symbols-rounded">folder_open</span>
+                    <p>No lorebook loaded</p>
+                    <button class="btn primary" id="emptyImportBtn">Import Lorebook</button>
+                </div>
+            `;
+            // Re-wire the import button (it lives inside innerHTML we just replaced)
+            const btn = document.getElementById('emptyImportBtn');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    const input = document.getElementById('file-input');
+                    if (input) input.click();
+                });
+            }
+        } else {
+            elements.entryList.innerHTML = `
+                <div class="empty-state">
+                    <span class="material-symbols-rounded">search_off</span>
+                    <p>${state.filterText ? 'No entries match your filter' : 'No entries yet'}</p>
+                </div>
+            `;
+        }
         return;
     }
     
     elements.entryList.innerHTML = entries.map(entry => {
-        const isSelected = entry.uid === state.currentEntryUid;
+        const isActive = entry.uid === state.currentEntryUid;
         const statusIcon = getStatusIcon(entry);
         const keys = (entry.key || []).slice(0, 3).join(', ');
         const hasMoreKeys = (entry.key || []).length > 3;
-        
+
         return `
-            <div class="entry-item ${isSelected ? 'selected' : ''}" 
+            <div class="entry-item ${isActive ? 'active' : ''}"
                  data-uid="${entry.uid}"
                  draggable="true">
                 <div class="entry-status">${statusIcon}</div>
                 <div class="entry-info">
-                    <div class="entry-title">${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
-                    <div class="entry-keys">${escapeHtml(keys)}${hasMoreKeys ? '...' : ''}</div>
+                    <div class="entry-name">${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
+                    <div class="entry-keywords">${escapeHtml(keys)}${hasMoreKeys ? '…' : ''}</div>
                 </div>
                 <div class="entry-actions">
-                    <button class="icon-btn entry-action-toggle" 
+                    <button class="icon-btn small entry-action-toggle"
                             aria-label="${entry.disable ? 'Enable' : 'Disable'} entry"
                             title="${entry.disable ? 'Enable' : 'Disable'}">
                         <span class="material-symbols-rounded">
