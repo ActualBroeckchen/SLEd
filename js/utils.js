@@ -139,10 +139,3 @@ export function debounce(func, wait) {
     };
 }
 
-/**
- * Generate a unique ID
- * @returns {string} Unique identifier
- */
-export function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}

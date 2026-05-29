@@ -8,7 +8,6 @@ import { elements } from './elements.js';
 import { debounce } from './utils.js';
 import {
     buildEntryFormHtml,
-    fid,
     field,
     activationRadios,
     triggerCheckboxes
@@ -92,12 +91,6 @@ export function toggleSidebar() {
         elements.sidebarOverlay.classList.toggle('visible', isOpen);
     }
     document.body.style.overflow = isOpen ? 'hidden' : '';
-}
-
-export function openSidebar() {
-    if (!elements.sidebar) return;
-    elements.sidebar.classList.add('open');
-    if (elements.sidebarOverlay) elements.sidebarOverlay.classList.add('visible');
 }
 
 export function closeSidebar() {
@@ -193,12 +186,6 @@ export function updateSidebarHeader() {
             ? `· ${count} ${count === 1 ? 'entry' : 'entries'}`
             : '';
     }
-    // Legacy fileName span (kept as a fallback if present)
-    if (elements.fileName) {
-        elements.fileName.textContent = hasData
-            ? `${name} · ${count} ${count === 1 ? 'entry' : 'entries'}`
-            : 'No file loaded';
-    }
 }
 
 /* ---------- Editor / Welcome ---------- */
@@ -211,14 +198,6 @@ export function showWelcome() {
 export function showEditor() {
     if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'none';
     if (elements.entryEditor) elements.entryEditor.style.display = '';
-}
-
-/* ---------- Advanced section (uses native <details>) ---------- */
-
-export function toggleAdvancedSettings() {
-    if (elements.advancedSection) {
-        elements.advancedSection.open = !elements.advancedSection.open;
-    }
 }
 
 /* ---------- Activation type ---------- */

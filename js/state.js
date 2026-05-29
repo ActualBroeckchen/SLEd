@@ -106,10 +106,6 @@ export function scheduleSave(delay = 400) {
     }, delay);
 }
 
-export function clearSession() {
-    localStorage.removeItem(SESSION_KEY);
-}
-
 export function markEntryUnsaved(uid) {
     if (uid === null || uid === undefined) return;
     state.unsavedEntries.add(uid);
