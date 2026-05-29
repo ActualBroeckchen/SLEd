@@ -1934,3 +1934,56 @@ kbd {
     border-radius: 3px;
     font-size: 0.85em;
 }
+
+/* ========================================
+   Script Import Modal
+   ======================================== */
+
+.script-import-source {
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.script-import-source strong {
+    color: var(--text-primary);
+    font-family: var(--font-editor-mono);
+    word-break: break-all;
+}
+
+.script-import-total {
+    margin-bottom: var(--space-sm);
+}
+
+.script-import-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-lg);
+}
+
+.script-import-list li {
+    padding: var(--space-xs) var(--space-sm);
+    border-left: 3px solid var(--accent);
+    margin-bottom: var(--space-xs);
+    background: var(--accent-light);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    font-size: 0.9rem;
+}
+
+.script-import-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--warning);
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.script-import-warning .material-symbols-rounded {
+    color: var(--warning);
+    flex-shrink: 0;
+    font-size: 20px;
+}

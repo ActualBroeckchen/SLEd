@@ -50,7 +50,10 @@ import {
     mergeSelectAll,
     mergeSelectNone,
     confirmMerge,
-    setupFileDropHandlers
+    setupFileDropHandlers,
+    applyScriptImportReplace,
+    applyScriptImportMerge,
+    cancelScriptImport
 } from './file-io.js';
 
 const persistSession = debounce(saveSession, 400);
@@ -221,6 +224,7 @@ function setupModalCloseHandlers() {
         ['closeExportTextModal', 'exportTextModal'],
         ['closeExportTextBtn', 'exportTextModal'],
         ['closeMergeModal', 'mergeModal'],
+        ['closeScriptImportModal', 'scriptImportModal'],
         ['closeHelpModal', 'helpModal']
     ];
     closeMap.forEach(([btnId, modalId]) => {
@@ -228,10 +232,19 @@ function setupModalCloseHandlers() {
         if (!btn) return;
         if (modalId === 'mergeModal') {
             btn.addEventListener('click', closeMergeModal);
+        } else if (modalId === 'scriptImportModal') {
+            btn.addEventListener('click', cancelScriptImport);
         } else {
             btn.addEventListener('click', () => closeModal(modalId));
         }
     });
+
+    const scriptCancel = document.getElementById('scriptImportCancelBtn');
+    if (scriptCancel) scriptCancel.addEventListener('click', cancelScriptImport);
+    const scriptReplace = document.getElementById('scriptImportReplaceBtn');
+    if (scriptReplace) scriptReplace.addEventListener('click', applyScriptImportReplace);
+    const scriptMerge = document.getElementById('scriptImportMergeBtn');
+    if (scriptMerge) scriptMerge.addEventListener('click', applyScriptImportMerge);
 
     document.querySelectorAll('dialog.modal').forEach(dialog => {
         dialog.addEventListener('click', (e) => {

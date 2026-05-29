@@ -365,6 +365,31 @@
         </div>
     </dialog>
 
+    <!-- Script Import Modal (orchestrator-script importer) -->
+    <dialog class="modal" id="scriptImportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import from JavaScript</h2>
+                <button class="icon-btn" id="closeScriptImportModal" aria-label="Close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="script-import-source"><strong id="scriptImportSource"></strong></p>
+                <div id="scriptImportSummary"></div>
+                <div class="script-import-warning">
+                    <span class="material-symbols-rounded">warning</span>
+                    <span>This file contains JavaScript that was executed in your browser to extract these entries. Only proceed if you trust the source.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="scriptImportCancelBtn">Cancel</button>
+                <button class="btn secondary" id="scriptImportMergeBtn">Merge</button>
+                <button class="btn primary" id="scriptImportReplaceBtn">Replace</button>
+            </div>
+        </div>
+    </dialog>
+
     <!-- Merge Modal -->
     <dialog class="modal" id="mergeModal">
         <div class="modal-content large">
@@ -390,7 +415,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Hidden file inputs -->
-    <input type="file" id="file-input" accept=".json" style="display: none;">
+    <input type="file" id="file-input" accept=".json,.js,.txt" style="display: none;">
     <input type="file" id="merge-file-input" accept=".json" style="display: none;">
 
     <script type="module" src="js/main.js"></script>

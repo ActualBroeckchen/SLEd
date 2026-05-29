@@ -14,6 +14,7 @@ export const state = {
     filterText: '',
     mergeStaging: null,
     mergeSelected: new Set(),
+    scriptImportStaging: null,
     settings: {
         theme: 'light',
         dyslexiaFont: false,
@@ -125,4 +126,5 @@ export function resetState() {
     state.filterText = '';
     state.mergeStaging = null;
     state.mergeSelected = new Set();
+    state.scriptImportStaging = null;
 }
