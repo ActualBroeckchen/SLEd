@@ -4,14 +4,12 @@
  */
 
 export const state = {
-    lorebook: null,
-    fileName: 'Untitled.json',
-    entries: {},
+    lorebookData: null,
+    fileName: '',
     openTabs: [],
-    activeTabId: null,
-    unsavedChanges: new Set(),
-    searchResults: [],
-    currentSearchIndex: 0,
+    currentEntryUid: null,
+    hasUnsavedChanges: false,
+    filterText: '',
     settings: {
         theme: 'light',
         dyslexiaFont: false,
@@ -22,9 +20,6 @@ export const state = {
     }
 };
 
-/**
- * Load settings from localStorage
- */
 export function loadSettings() {
     const saved = localStorage.getItem('sled-settings');
     if (saved) {
@@ -34,31 +29,22 @@ export function loadSettings() {
             console.warn('Failed to load settings:', e);
         }
     }
-    
-    // Check for legacy theme setting
+
     const legacyTheme = localStorage.getItem('sled-theme');
     if (legacyTheme) {
         state.settings.theme = legacyTheme;
     }
 }
 
-/**
- * Save settings to localStorage
- */
 export function saveSettings() {
     localStorage.setItem('sled-settings', JSON.stringify(state.settings));
 }
 
-/**
- * Reset state for new lorebook
- */
 export function resetState() {
-    state.lorebook = null;
-    state.fileName = 'Untitled.json';
-    state.entries = {};
+    state.lorebookData = null;
+    state.fileName = '';
     state.openTabs = [];
-    state.activeTabId = null;
-    state.unsavedChanges.clear();
-    state.searchResults = [];
-    state.currentSearchIndex = 0;
+    state.currentEntryUid = null;
+    state.hasUnsavedChanges = false;
+    state.filterText = '';
 }

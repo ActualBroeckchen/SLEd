@@ -12,19 +12,23 @@ import { populateForm, clearForm, showWelcome, showEditor } from './ui.js';
  * Render all tabs
  */
 export function renderTabs() {
-    if (!elements.tabsContainer) return;
-    
-    elements.tabsContainer.innerHTML = state.openTabs.map(tab => `
+    if (!elements.tabs) return;
+
+    elements.tabs.innerHTML = state.openTabs.map(tab => `
         <div class="tab ${tab.uid === state.currentEntryUid ? 'active' : ''}" data-uid="${tab.uid}">
-            <span class="tab-title">${escapeHtml(tab.title)}</span>
+            <span class="tab-name">${escapeHtml(tab.title)}</span>
             <button class="tab-close" aria-label="Close tab">
                 <span class="material-symbols-rounded">close</span>
             </button>
         </div>
     `).join('');
-    
+
+    if (elements.tabsContainer) {
+        elements.tabsContainer.classList.toggle('has-tabs', state.openTabs.length > 0);
+    }
+
     // Add event listeners
-    elements.tabsContainer.querySelectorAll('.tab').forEach(tabEl => {
+    elements.tabs.querySelectorAll('.tab').forEach(tabEl => {
         const uid = parseInt(tabEl.dataset.uid);
         
         tabEl.addEventListener('click', (e) => {
