@@ -3,10 +3,9 @@
  * File I/O Module (Import, Export, Merge)
  */
 
-import { state, resetState, clearUnsaved, saveSession, clearSession } from './state.js';
-import { elements } from './elements.js';
+import { state, resetState, clearUnsaved, saveSession } from './state.js';
 import { downloadFile, escapeHtml, getStatusIcon } from './utils.js';
-import { showToast, openModal, closeModal, updateSidebarHeader, showEditor, showWelcome } from './ui.js';
+import { showToast, openModal, closeModal, updateSidebarHeader, showWelcome } from './ui.js';
 import { renderSidebar } from './sidebar.js';
 import { closeAllTabs } from './tabs.js';
 
@@ -220,45 +219,6 @@ export function exportLorebookAsText(opts = {}) {
     }
 }
 
-/**
- * Export selected entries only
- * @param {Array<number>} uids - Array of entry UIDs to export
- */
-export function exportSelectedEntries(uids) {
-    if (!state.lorebookData || !uids || uids.length === 0) {
-        showToast('No entries selected', 'error');
-        return;
-    }
-    
-    try {
-        const exportData = {
-            ...state.lorebookData,
-            entries: {}
-        };
-        
-        uids.forEach(uid => {
-            if (state.lorebookData.entries[uid]) {
-                exportData.entries[uid] = state.lorebookData.entries[uid];
-            }
-        });
-        
-        const json = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        
-        const baseName = state.fileName?.replace('.json', '') || 'lorebook';
-        downloadFile(blob, `${baseName}_partial.json`);
-        
-        showToast(`Exported ${uids.length} entries`, 'success');
-        
-    } catch (error) {
-        console.error('Export error:', error);
-        showToast('Failed to export entries', 'error');
-    }
-}
-
-/**
- * Open the merge modal
- */
 /**
  * Start the merge flow: prompt for a file.
  * The file picker change handler stages the source and opens the modal.

@@ -6,7 +6,7 @@
 import { state, scheduleSave } from './state.js';
 import { elements } from './elements.js';
 import { escapeHtml } from './utils.js';
-import { populateForm, clearForm, showWelcome, showEditor, renderEditorForms } from './ui.js';
+import { clearForm, showWelcome, showEditor, renderEditorForms } from './ui.js';
 
 /**
  * Render all tabs
@@ -151,10 +151,3 @@ export function updateTabTitle(uid, title) {
     }
 }
 
-/**
- * Get the currently active tab
- * @returns {Object|null} Active tab or null
- */
-export function getActiveTab() {
-    return state.openTabs.find(t => t.uid === state.currentEntryUid) || null;
-}

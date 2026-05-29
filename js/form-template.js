@@ -5,22 +5,6 @@
  * multiple forms on the page without ID collisions.
  */
 
-export const FIELD_KEYS = [
-    'entryName', 'primaryKeywords', 'secondaryKeywords', 'selectiveLogic', 'entryContent',
-    'insertionPosition', 'insertionDepth', 'insertionRole', 'outletName', 'orderNumber',
-    'depthRow', 'outletRow',
-    'probability', 'sticky', 'cooldown', 'delay',
-    'inclusionGroup', 'groupWeight', 'groupOverride',
-    'scanDepthOverride', 'caseSensitiveOverride', 'wholeWordOverride', 'groupScoringOverride',
-    'excludeRecursion', 'preventRecursion', 'delayUntilRecursion', 'ignoreBudget',
-    'automationId',
-    'characterFilterExclude', 'characterFilterNames', 'characterFilterTags',
-    'triggerNormal', 'triggerContinue', 'triggerImpersonate', 'triggerSwipe', 'triggerRegenerate', 'triggerQuiet',
-    'matchPersonaDescription', 'matchCharacterDescription', 'matchCharacterPersonality',
-    'matchScenario', 'matchCharacterDepthPrompt', 'matchCreatorNotes',
-    'advancedSection', 'keywordsSection', 'secondaryKeywordsSection'
-];
-
 /**
  * @param {string} base  Base field id (matches the original index.html ids)
  * @param {number} uid   Entry uid

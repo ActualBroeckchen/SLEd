@@ -280,14 +280,6 @@ export function setFilter(text) {
     renderSidebar();
 }
 
-export function clearFilter() {
-    state.filterText = '';
-    if (elements.sidebarSearch) {
-        elements.sidebarSearch.value = '';
-    }
-    renderSidebar();
-}
-
 export function clearSelectedEntries() {
     state.selectedEntries.clear();
     renderSidebar();

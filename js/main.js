@@ -8,8 +8,7 @@ import {
     loadSettings,
     saveSettings,
     loadSession,
-    saveSession,
-    markEntryUnsaved
+    saveSession
 } from './state.js';
 import { elements, initElements } from './elements.js';
 import { debounce } from './utils.js';
@@ -31,13 +30,7 @@ import {
     showEditor,
     renderEditorForms
 } from './ui.js';
-import {
-    createEntry,
-    saveCurrentEntry,
-    deleteEntry,
-    duplicateEntry,
-    openEntry
-} from './entries.js';
+import { createEntry, saveCurrentEntry } from './entries.js';
 import { closeTab, renderTabs } from './tabs.js';
 import { renderSidebar, setFilter, clearSelectedEntries } from './sidebar.js';
 import {

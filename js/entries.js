@@ -4,18 +4,16 @@
  */
 
 import { state, markEntryUnsaved, scheduleSave } from './state.js';
-import { elements } from './elements.js';
-import { createDefaultEntry, getStatusIcon } from './utils.js';
+import { createDefaultEntry } from './utils.js';
 import {
     populateForm,
     getFormData,
-    clearForm,
     showToast,
     updateSidebarHeader,
     showEditor,
     renderEditorForms
 } from './ui.js';
-import { addTab, switchToTab, closeTab, updateTabTitle, renderTabs } from './tabs.js';
+import { addTab, switchToTab, closeTab, updateTabTitle } from './tabs.js';
 import { renderSidebar } from './sidebar.js';
 
 /**
@@ -279,70 +277,3 @@ export function toggleEntryEnabled(uid) {
     renderSidebar();
 }
 
-/**
- * Update the sidebar selection to highlight current entry
- */
-export function updateSidebarSelection() {
-    document.querySelectorAll('.entry-item.active').forEach(el => {
-        el.classList.remove('active');
-    });
-
-    if (state.currentEntryUid !== null) {
-        const item = document.querySelector(`.entry-item[data-uid="${state.currentEntryUid}"]`);
-        if (item) {
-            item.classList.add('active');
-        }
-    }
-}
-
-/**
- * Move entry up in order
- * @param {number} uid - Entry UID
- */
-export function moveEntryUp(uid) {
-    const entries = Object.values(state.lorebookData?.entries || {});
-    const entry = entries.find(e => e.uid === uid);
-    if (!entry) return;
-    
-    // Find the entry with the next lower order
-    const lowerEntries = entries.filter(e => e.order < entry.order);
-    if (lowerEntries.length === 0) return;
-    
-    const swapEntry = lowerEntries.reduce((prev, curr) => 
-        (curr.order > prev.order) ? curr : prev
-    );
-    
-    // Swap orders
-    const tempOrder = entry.order;
-    entry.order = swapEntry.order;
-    swapEntry.order = tempOrder;
-    
-    state.hasUnsavedChanges = true;
-    renderSidebar();
-}
-
-/**
- * Move entry down in order
- * @param {number} uid - Entry UID
- */
-export function moveEntryDown(uid) {
-    const entries = Object.values(state.lorebookData?.entries || {});
-    const entry = entries.find(e => e.uid === uid);
-    if (!entry) return;
-    
-    // Find the entry with the next higher order
-    const higherEntries = entries.filter(e => e.order > entry.order);
-    if (higherEntries.length === 0) return;
-    
-    const swapEntry = higherEntries.reduce((prev, curr) => 
-        (curr.order < prev.order) ? curr : prev
-    );
-    
-    // Swap orders
-    const tempOrder = entry.order;
-    entry.order = swapEntry.order;
-    swapEntry.order = tempOrder;
-    
-    state.hasUnsavedChanges = true;
-    renderSidebar();
-}

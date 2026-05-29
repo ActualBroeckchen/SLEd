@@ -4,13 +4,15 @@
  *
  * The entry form was moved out of index.html into js/form-template.js so
  * we can render multiple forms side-by-side. This module only caches
- * elements that exist statically in index.html.
+ * statically-present elements that JS actually reads as `elements.foo`.
+ * Elements that are only addressed by string id (e.g. document.getElementById
+ * in openModal / showToast / renderMergeList) intentionally don't appear
+ * here.
  */
 
 export const elements = {
     // Header
     menuToggle: null,
-    fileName: null,
     lorebookName: null,
     entryCount: null,
     searchBtn: null,
@@ -18,18 +20,14 @@ export const elements = {
     helpBtn: null,
     themeToggle: null,
     editorFontToggle: null,
-    headerLogo: null,
 
     // Sidebar
     sidebar: null,
     sidebarOverlay: null,
     sidebarSearch: null,
     sidebarZoom: null,
-    sidebarTitle: null,
     entryList: null,
-    emptyState: null,
     addEntryBtn: null,
-    emptyImportBtn: null,
     sidebarClose: null,
     clearSelectionBtn: null,
 
@@ -37,43 +35,22 @@ export const elements = {
     tabsContainer: null,
     tabs: null,
     sideBySideToggle: null,
-    editorContent: null,
     welcomeScreen: null,
-    welcomeLogo: null,
-    entryEditor: null, // container for per-uid entry forms
+    entryEditor: null,
 
     // Welcome buttons
     importBtn: null,
     newLorebookBtn: null,
-    newEntryBtn: null,
 
     // Action bar
     actionImport: null,
     actionExport: null,
     actionMerge: null,
     actionSave: null,
-    saveBtn: null,
 
-    // Modals
-    searchModal: null,
-    settingsModal: null,
-    exportModal: null,
-    exportTextModal: null,
-    mergeModal: null,
-    helpModal: null,
-
-    // Modal close buttons
-    closeSearchModal: null,
-    closeSettingsModal: null,
-    closeSettingsBtn: null,
-    closeExportModal: null,
-    closeExportTextModal: null,
-    closeExportTextBtn: null,
-    closeMergeModal: null,
-    closeHelpModal: null,
     performExportTextBtn: null,
 
-    // Text-export options
+    // Text-export options (read by computed-key lookup `elements[name]`)
     txtIncludeTitles: null,
     txtIncludeContent: null,
     txtIncludePrimaryKeys: null,
@@ -86,9 +63,6 @@ export const elements = {
     // File inputs
     fileInput: null,
     mergeFileInput: null,
-
-    // Toast
-    toastContainer: null,
 
     // Settings
     themeLightBtn: null,
@@ -105,14 +79,12 @@ export const elements = {
     // Merge modal
     mergeSelectAll: null,
     mergeSelectNone: null,
-    mergeConfirm: null,
-    mergeList: null
+    mergeConfirm: null
 };
 
 export function initElements() {
     // Header
     elements.menuToggle = document.getElementById('menuToggle');
-    elements.fileName = document.getElementById('fileName');
     elements.lorebookName = document.getElementById('lorebookName');
     elements.entryCount = document.getElementById('entryCount');
     elements.searchBtn = document.getElementById('searchBtn');
@@ -120,18 +92,14 @@ export function initElements() {
     elements.themeToggle = document.getElementById('themeToggle');
     elements.editorFontToggle = document.getElementById('editorFontToggle');
     elements.settingsBtn = document.getElementById('settingsBtn');
-    elements.headerLogo = document.getElementById('headerLogo');
 
     // Sidebar
     elements.sidebar = document.getElementById('sidebar');
     elements.sidebarOverlay = document.getElementById('sidebarOverlay');
     elements.sidebarSearch = document.getElementById('sidebarSearch');
     elements.sidebarZoom = document.getElementById('sidebarZoom');
-    elements.sidebarTitle = document.querySelector('.sidebar-title');
     elements.entryList = document.getElementById('entryList');
-    elements.emptyState = document.getElementById('emptyState');
     elements.addEntryBtn = document.getElementById('addEntryBtn');
-    elements.emptyImportBtn = document.getElementById('emptyImportBtn');
     elements.sidebarClose = document.querySelector('.sidebar-close');
     elements.clearSelectionBtn = document.getElementById('clearSelectionBtn');
 
@@ -139,41 +107,20 @@ export function initElements() {
     elements.tabsContainer = document.getElementById('tabsContainer');
     elements.tabs = document.getElementById('tabs');
     elements.sideBySideToggle = document.getElementById('sideBySideToggle');
-    elements.editorContent = document.getElementById('editorContent');
     elements.welcomeScreen = document.getElementById('welcomeScreen');
-    elements.welcomeLogo = document.getElementById('welcomeLogo');
     elements.entryEditor = document.getElementById('entryEditor');
 
     // Welcome buttons
     elements.importBtn = document.getElementById('importBtn');
     elements.newLorebookBtn = document.getElementById('newLorebookBtn');
-    elements.newEntryBtn = document.getElementById('addEntryBtn');
 
     // Action bar
     elements.actionImport = document.getElementById('actionImport');
     elements.actionExport = document.getElementById('actionExport');
     elements.actionMerge = document.getElementById('actionMerge');
     elements.actionSave = document.getElementById('actionSave');
-    elements.saveBtn = document.getElementById('actionSave');
 
-    // Modals
-    elements.searchModal = document.getElementById('searchModal');
-    elements.settingsModal = document.getElementById('settingsModal');
-    elements.exportModal = document.getElementById('exportModal');
-    elements.exportTextModal = document.getElementById('exportTextModal');
-    elements.mergeModal = document.getElementById('mergeModal');
-    elements.helpModal = document.getElementById('helpModal');
-
-    // Modal close buttons
-    elements.closeSearchModal = document.getElementById('closeSearchModal');
-    elements.closeSettingsModal = document.getElementById('closeSettingsModal');
-    elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    elements.closeExportModal = document.getElementById('closeExportModal');
-    elements.closeExportTextModal = document.getElementById('closeExportTextModal');
-    elements.closeExportTextBtn = document.getElementById('closeExportTextBtn');
     elements.performExportTextBtn = document.getElementById('performExportTextBtn');
-    elements.closeMergeModal = document.getElementById('closeMergeModal');
-    elements.closeHelpModal = document.getElementById('closeHelpModal');
 
     // Text-export options
     elements.txtIncludeTitles = document.getElementById('txtIncludeTitles');
@@ -188,9 +135,6 @@ export function initElements() {
     // File inputs
     elements.fileInput = document.getElementById('file-input');
     elements.mergeFileInput = document.getElementById('merge-file-input');
-
-    // Toast
-    elements.toastContainer = document.getElementById('toastContainer');
 
     // Settings
     elements.dyslexiaFont = document.getElementById('dyslexiaFont');
@@ -208,5 +152,4 @@ export function initElements() {
     elements.mergeSelectAll = document.getElementById('mergeSelectAll');
     elements.mergeSelectNone = document.getElementById('mergeSelectNone');
     elements.mergeConfirm = document.getElementById('mergeConfirm');
-    elements.mergeList = document.getElementById('mergeList');
 }

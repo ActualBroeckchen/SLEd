@@ -36,13 +36,6 @@ export function openSearchModal() {
     }
 }
 
-/**
- * Close the search modal
- */
-export function closeSearchModal() {
-    closeModal('searchModal');
-    clearSearchResults();
-}
 
 /**
  * Perform search across all entries
@@ -244,33 +237,26 @@ function goToResult(index) {
     searchState.currentIndex = index;
     const result = searchState.results[index];
     
-    // Open the entry
+    // Close the search modal so focus can land on a background field
+    closeModal('searchModal');
+
+    // Open the entry, then focus the appropriate per-uid field
     import('./entries.js').then(({ openEntry }) => {
         openEntry(result.uid);
-        
-        // Focus the appropriate field
         setTimeout(() => {
-            let field;
-            switch (result.field) {
-                case 'key':
-                    field = document.getElementById('primaryKeywords');
-                    break;
-                case 'keysecondary':
-                    field = document.getElementById('secondaryKeywords');
-                    break;
-                case 'content':
-                    field = document.getElementById('entryContent');
-                    break;
-                case 'comment':
-                    field = document.getElementById('entryName');
-                    break;
-            }
-            if (field) {
-                field.focus();
-            }
+            const baseByField = {
+                key: 'primaryKeywords',
+                keysecondary: 'secondaryKeywords',
+                content: 'entryContent',
+                comment: 'entryName'
+            };
+            const base = baseByField[result.field];
+            if (!base) return;
+            const field = document.getElementById(`${base}_${result.uid}`);
+            if (field) field.focus();
         }, 100);
     });
-    
+
     // Highlight current result in list
     document.querySelectorAll('.search-result-item.active').forEach(el => {
         el.classList.remove('active');
@@ -280,26 +266,6 @@ function goToResult(index) {
         item.classList.add('active');
         item.scrollIntoView({ block: 'nearest' });
     }
-}
-
-/**
- * Go to next search result
- */
-export function nextResult() {
-    if (searchState.results.length === 0) return;
-    const nextIndex = (searchState.currentIndex + 1) % searchState.results.length;
-    goToResult(nextIndex);
-}
-
-/**
- * Go to previous search result
- */
-export function prevResult() {
-    if (searchState.results.length === 0) return;
-    const prevIndex = searchState.currentIndex <= 0 
-        ? searchState.results.length - 1 
-        : searchState.currentIndex - 1;
-    goToResult(prevIndex);
 }
 
 /**
@@ -435,7 +401,7 @@ export function replaceAll() {
 /**
  * Clear search results
  */
-export function clearSearchResults() {
+function clearSearchResults() {
     searchState.results = [];
     searchState.currentIndex = -1;
     
