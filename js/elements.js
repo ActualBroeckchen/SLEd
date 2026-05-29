@@ -7,6 +7,8 @@ export const elements = {
     // Header
     menuToggle: null,
     fileName: null,
+    lorebookName: null,
+    entryCount: null,
     searchBtn: null,
     settingsBtn: null,
     headerLogo: null,
@@ -22,6 +24,7 @@ export const elements = {
     addEntryBtn: null,
     emptyImportBtn: null,
     sidebarClose: null,
+    clearSelectionBtn: null,
 
     // Editor
     tabsContainer: null,
@@ -149,6 +152,8 @@ export function initElements() {
     // Header
     elements.menuToggle = document.getElementById('menuToggle');
     elements.fileName = document.getElementById('fileName');
+    elements.lorebookName = document.getElementById('lorebookName');
+    elements.entryCount = document.getElementById('entryCount');
     elements.searchBtn = document.getElementById('searchBtn');
     elements.settingsBtn = document.getElementById('settingsBtn');
     elements.headerLogo = document.getElementById('headerLogo');
@@ -164,6 +169,7 @@ export function initElements() {
     elements.addEntryBtn = document.getElementById('addEntryBtn');
     elements.emptyImportBtn = document.getElementById('emptyImportBtn');
     elements.sidebarClose = document.querySelector('.sidebar-close');
+    elements.clearSelectionBtn = document.getElementById('clearSelectionBtn');
 
     // Editor
     elements.tabsContainer = document.getElementById('tabsContainer');

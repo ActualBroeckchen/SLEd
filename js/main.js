@@ -3,7 +3,14 @@
  * Main Entry Point Module
  */
 
-import { state, loadSettings, saveSettings } from './state.js';
+import {
+    state,
+    loadSettings,
+    saveSettings,
+    loadSession,
+    saveSession,
+    markEntryUnsaved
+} from './state.js';
 import { elements, initElements } from './elements.js';
 import { debounce } from './utils.js';
 import {
@@ -20,16 +27,18 @@ import {
     updateSidebarHeader,
     updatePositionRowVisibility,
     populateForm,
-    getFormData
+    getFormData,
+    showEditor
 } from './ui.js';
 import {
     createEntry,
     saveCurrentEntry,
     deleteEntry,
-    duplicateEntry
+    duplicateEntry,
+    openEntry
 } from './entries.js';
-import { closeAllTabs } from './tabs.js';
-import { renderSidebar, setFilter } from './sidebar.js';
+import { closeTab, renderTabs } from './tabs.js';
+import { renderSidebar, setFilter, clearSelectedEntries } from './sidebar.js';
 import {
     openSearchModal,
     performSearch,
@@ -43,9 +52,14 @@ import {
     exportLorebookAsText,
     openMergeModal,
     closeMergeModal,
-    mergeLorebook,
+    stageMergeFile,
+    mergeSelectAll,
+    mergeSelectNone,
+    confirmMerge,
     setupFileDropHandlers
 } from './file-io.js';
+
+const persistSession = debounce(saveSession, 400);
 
 function init() {
     initElements();
@@ -54,8 +68,25 @@ function init() {
     setupEventListeners();
     setupFileDropHandlers();
     registerServiceWorker();
+
+    // Try to restore the previous session
+    const restored = loadSession();
     updateSidebarHeader();
     renderSidebar();
+    if (restored) {
+        // Restore open tabs in the editor
+        if (state.openTabs.length > 0) {
+            renderTabs();
+            if (state.currentEntryUid !== null) {
+                const entry = state.lorebookData?.entries[state.currentEntryUid];
+                if (entry) {
+                    populateForm(entry);
+                    showEditor();
+                }
+            }
+        }
+        showToast('Previous session restored', 'info', 2000);
+    }
 
     console.log('SLEd initialized');
 }
@@ -90,6 +121,16 @@ function setupHeaderHandlers() {
     if (elements.settingsBtn) {
         elements.settingsBtn.addEventListener('click', () => openModal('settingsModal'));
     }
+    if (elements.lorebookName) {
+        elements.lorebookName.addEventListener('input', (e) => {
+            if (!state.lorebookData) return;
+            state.lorebookData.name = e.target.value;
+            state.fileName = `${e.target.value || 'lorebook'}.json`;
+            state.hasUnsavedChanges = true;
+            persistSession();
+        });
+        elements.lorebookName.addEventListener('blur', updateSidebarHeader);
+    }
 }
 
 /* ---------- Sidebar ---------- */
@@ -108,30 +149,25 @@ function setupSidebarHandlers() {
         });
     }
     if (elements.addEntryBtn) {
-        elements.addEntryBtn.addEventListener('click', () => {
-            createEntry();
-            // On mobile, leave the sidebar open so the user sees the new entry
-        });
+        elements.addEntryBtn.addEventListener('click', () => createEntry());
     }
     if (elements.sidebarClose) {
         elements.sidebarClose.addEventListener('click', closeSidebar);
+    }
+    if (elements.clearSelectionBtn) {
+        elements.clearSelectionBtn.addEventListener('click', clearSelectedEntries);
     }
 }
 
 /* ---------- Welcome screen ---------- */
 
 function setupWelcomeHandlers() {
-    // Welcome buttons trigger the file picker / create flow
     if (elements.importBtn && elements.fileInput) {
         elements.importBtn.addEventListener('click', () => elements.fileInput.click());
     }
     if (elements.newLorebookBtn) {
         elements.newLorebookBtn.addEventListener('click', createNewLorebook);
     }
-    // The "empty state" import button is re-wired inside renderSidebar(),
-    // since the empty state's HTML gets reset on each render.
-
-    // Main file input → import
     if (elements.fileInput) {
         elements.fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files[0]) {
@@ -177,14 +213,20 @@ function setupModalCloseHandlers() {
     ];
     closeMap.forEach(([btnId, modalId]) => {
         const btn = document.getElementById(btnId);
-        if (btn) btn.addEventListener('click', () => closeModal(modalId));
+        if (!btn) return;
+        if (modalId === 'mergeModal') {
+            btn.addEventListener('click', closeMergeModal);
+        } else {
+            btn.addEventListener('click', () => closeModal(modalId));
+        }
     });
 
-    // Backdrop click on each <dialog> closes it
     document.querySelectorAll('dialog.modal').forEach(dialog => {
         dialog.addEventListener('click', (e) => {
-            // <dialog> reports clicks on the backdrop as having e.target === dialog
-            if (e.target === dialog) closeModal(dialog.id);
+            if (e.target === dialog) {
+                if (dialog.id === 'mergeModal') closeMergeModal();
+                else closeModal(dialog.id);
+            }
         });
     });
 }
@@ -279,28 +321,18 @@ function setupMergeHandlers() {
         elements.mergeFileInput.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
-            mergeLorebook(file, {
-                overwriteDuplicates: false,
-                mergeByComment: true,
-                preserveOrder: true
-            });
+            stageMergeFile(file);
             e.target.value = '';
         });
     }
     if (elements.mergeConfirm) {
-        elements.mergeConfirm.addEventListener('click', () => {
-            const input = elements.mergeFileInput;
-            if (input && input.files && input.files[0]) {
-                mergeLorebook(input.files[0], {
-                    overwriteDuplicates: false,
-                    mergeByComment: true,
-                    preserveOrder: true
-                });
-                input.value = '';
-            } else {
-                showToast('Pick a file to merge first', 'error');
-            }
-        });
+        elements.mergeConfirm.addEventListener('click', confirmMerge);
+    }
+    if (elements.mergeSelectAll) {
+        elements.mergeSelectAll.addEventListener('click', mergeSelectAll);
+    }
+    if (elements.mergeSelectNone) {
+        elements.mergeSelectNone.addEventListener('click', mergeSelectNone);
     }
 }
 
@@ -314,15 +346,21 @@ function setupFormHandlers() {
     if (!elements.entryForm) return;
 
     const autoSave = debounce(() => {
-        if (state.currentEntryUid !== null && state.lorebookData?.entries) {
-            const entry = state.lorebookData.entries[state.currentEntryUid];
-            if (entry) {
-                const formData = getFormData();
-                Object.assign(entry, formData);
-                state.hasUnsavedChanges = true;
-            }
-        }
-    }, 600);
+        if (state.currentEntryUid === null || !state.lorebookData?.entries) return;
+        const entry = state.lorebookData.entries[state.currentEntryUid];
+        if (!entry) return;
+        const formData = getFormData();
+        Object.assign(entry, formData);
+        markEntryUnsaved(state.currentEntryUid);
+        // Reflect changes in the sidebar (title, status, badges, unsaved dot)
+        renderSidebar();
+        // Also bump the tab title in case the comment changed
+        import('./tabs.js').then(({ updateTabTitle, renderTabs }) => {
+            updateTabTitle(state.currentEntryUid, entry.comment || `Entry ${state.currentEntryUid}`);
+            renderTabs();
+        });
+        persistSession();
+    }, 500);
 
     elements.entryForm.addEventListener('input', autoSave);
     elements.entryForm.addEventListener('change', autoSave);
@@ -345,7 +383,6 @@ function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
         const meta = e.ctrlKey || e.metaKey;
 
-        // Don't intercept typing-in-input single-key Escape outside of modals
         if (e.key === 'Escape') {
             closeAllModals();
             closeSidebar();
@@ -388,9 +425,7 @@ function setupKeyboardShortcuts() {
             case 'w':
                 e.preventDefault();
                 if (state.currentEntryUid !== null) {
-                    import('./tabs.js').then(({ closeTab }) => {
-                        closeTab(state.currentEntryUid);
-                    });
+                    closeTab(state.currentEntryUid);
                 }
                 break;
         }
@@ -401,7 +436,6 @@ function setupKeyboardShortcuts() {
 
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    // Only register when served over http(s), not over file://
     if (!['http:', 'https:'].includes(location.protocol)) return;
     try {
         await navigator.serviceWorker.register('./service-worker.js');

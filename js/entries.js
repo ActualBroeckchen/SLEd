@@ -3,11 +3,11 @@
  * Entry Management Module
  */
 
-import { state } from './state.js';
+import { state, markEntryUnsaved, scheduleSave } from './state.js';
 import { elements } from './elements.js';
 import { createDefaultEntry, getStatusIcon } from './utils.js';
 import { populateForm, getFormData, clearForm, showToast, updateSidebarHeader, showEditor } from './ui.js';
-import { addTab, switchToTab, closeTab, updateTabTitle } from './tabs.js';
+import { addTab, switchToTab, closeTab, updateTabTitle, renderTabs } from './tabs.js';
 import { renderSidebar } from './sidebar.js';
 
 /**
@@ -49,14 +49,14 @@ export function createEntry() {
     const uid = getNextUid();
     const order = getNextOrder();
     const entry = createDefaultEntry(uid, order);
-    
+
     state.lorebookData.entries[uid] = entry;
-    state.hasUnsavedChanges = true;
-    
+    markEntryUnsaved(uid);
+
     renderSidebar();
     updateSidebarHeader();
     openEntry(uid);
-    
+
     showToast('Entry created', 'success');
     return entry;
 }
@@ -93,27 +93,97 @@ export function openEntry(uid) {
 }
 
 /**
- * Save the current entry
+ * Save the current entry — commits the form to memory and clears the
+ * "unsaved" indicator for this entry.
  */
 export function saveCurrentEntry() {
     if (state.currentEntryUid === null) return;
-    
+
     const entry = state.lorebookData?.entries[state.currentEntryUid];
     if (!entry) return;
-    
-    // Get form data and merge with entry
+
     const formData = getFormData();
     Object.assign(entry, formData);
-    
-    state.hasUnsavedChanges = true;
-    
-    // Update tab title
+
+    state.unsavedEntries.delete(state.currentEntryUid);
+    state.hasUnsavedChanges = state.unsavedEntries.size > 0;
+    scheduleSave();
+
     updateTabTitle(state.currentEntryUid, entry.comment || `Entry ${state.currentEntryUid}`);
-    
-    // Update sidebar
     renderSidebar();
-    
+
     showToast('Entry saved', 'success');
+}
+
+/**
+ * Insert a new entry just above the target (in order).
+ */
+export function insertEntryAbove(targetUid) {
+    if (!state.lorebookData?.entries) return;
+    const target = state.lorebookData.entries[targetUid];
+    if (!target) return;
+
+    const insertOrder = target.order ?? 0;
+    Object.values(state.lorebookData.entries).forEach(e => {
+        if ((e.order ?? 0) >= insertOrder) e.order = (e.order ?? 0) + 1;
+    });
+
+    const uid = getNextUid();
+    const entry = createDefaultEntry(uid, insertOrder);
+    state.lorebookData.entries[uid] = entry;
+    markEntryUnsaved(uid);
+
+    renderSidebar();
+    updateSidebarHeader();
+    openEntry(uid);
+}
+
+/**
+ * Insert a new entry just below the target (in order).
+ */
+export function insertEntryBelow(targetUid) {
+    if (!state.lorebookData?.entries) return;
+    const target = state.lorebookData.entries[targetUid];
+    if (!target) return;
+
+    const targetOrder = target.order ?? 0;
+    Object.values(state.lorebookData.entries).forEach(e => {
+        if ((e.order ?? 0) > targetOrder) e.order = (e.order ?? 0) + 1;
+    });
+
+    const uid = getNextUid();
+    const entry = createDefaultEntry(uid, targetOrder + 1);
+    state.lorebookData.entries[uid] = entry;
+    markEntryUnsaved(uid);
+
+    renderSidebar();
+    updateSidebarHeader();
+    openEntry(uid);
+}
+
+/**
+ * Change an entry's order (move it within the list) without renaming UIDs.
+ * Pulls the entry out and re-inserts at the target order, shifting others.
+ */
+export function setEntryOrder(uid, newOrder) {
+    if (!state.lorebookData?.entries) return;
+    const entry = state.lorebookData.entries[uid];
+    if (!entry) return;
+    const oldOrder = entry.order ?? 0;
+    if (newOrder === oldOrder) return;
+
+    Object.values(state.lorebookData.entries).forEach(e => {
+        if (e.uid === uid) return;
+        const o = e.order ?? 0;
+        if (oldOrder < newOrder && o > oldOrder && o <= newOrder) {
+            e.order = o - 1;
+        } else if (oldOrder > newOrder && o >= newOrder && o < oldOrder) {
+            e.order = o + 1;
+        }
+    });
+    entry.order = newOrder;
+    markEntryUnsaved(uid);
+    renderSidebar();
 }
 
 /**
@@ -133,8 +203,11 @@ export function deleteEntry(uid) {
     
     // Remove entry
     delete state.lorebookData.entries[uid];
+    state.unsavedEntries.delete(uid);
+    state.selectedEntries.delete(uid);
     state.hasUnsavedChanges = true;
-    
+    scheduleSave();
+
     // Close tab if open
     closeTab(uid);
     
@@ -159,13 +232,20 @@ export function duplicateEntry(uid) {
     
     const newUid = getNextUid();
     const newEntry = JSON.parse(JSON.stringify(originalEntry));
-    
+
     newEntry.uid = newUid;
     newEntry.displayIndex = newUid;
     newEntry.comment = (newEntry.comment || '') + ' (copy)';
-    
+
+    // Place the copy right after the source in order
+    const srcOrder = originalEntry.order ?? 0;
+    Object.values(state.lorebookData.entries).forEach(e => {
+        if ((e.order ?? 0) > srcOrder) e.order = (e.order ?? 0) + 1;
+    });
+    newEntry.order = srcOrder + 1;
+
     state.lorebookData.entries[newUid] = newEntry;
-    state.hasUnsavedChanges = true;
+    markEntryUnsaved(newUid);
     
     renderSidebar();
     updateSidebarHeader();
@@ -184,7 +264,7 @@ export function toggleEntryEnabled(uid) {
     if (!entry) return;
     
     entry.disable = !entry.disable;
-    state.hasUnsavedChanges = true;
+    markEntryUnsaved(uid);
 
     // Update form if this is the current entry
     if (state.currentEntryUid === uid) {

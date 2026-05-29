@@ -140,16 +140,32 @@ export function showToast(message, type = 'info', duration = 3000) {
 /* ---------- Header / Sidebar header ---------- */
 
 export function updateSidebarHeader() {
-    if (elements.fileName) {
-        if (state.lorebookData) {
-            const name = state.lorebookData.name || state.fileName || 'Untitled';
-            const count = state.lorebookData.entries
-                ? Object.keys(state.lorebookData.entries).length
-                : 0;
-            elements.fileName.textContent = `${name} · ${count} ${count === 1 ? 'entry' : 'entries'}`;
-        } else {
-            elements.fileName.textContent = 'No file loaded';
+    const hasData = !!state.lorebookData;
+    const name = hasData
+        ? (state.lorebookData.name || state.fileName.replace(/\.json$/i, '') || 'Untitled')
+        : '';
+    const count = hasData && state.lorebookData.entries
+        ? Object.keys(state.lorebookData.entries).length
+        : 0;
+
+    if (elements.lorebookName) {
+        // Don't overwrite the user's in-progress typing
+        if (document.activeElement !== elements.lorebookName) {
+            elements.lorebookName.value = name;
         }
+        elements.lorebookName.disabled = !hasData;
+        elements.lorebookName.placeholder = hasData ? 'Lorebook name' : 'No file loaded';
+    }
+    if (elements.entryCount) {
+        elements.entryCount.textContent = hasData
+            ? `· ${count} ${count === 1 ? 'entry' : 'entries'}`
+            : '';
+    }
+    // Legacy fileName span (kept as a fallback if present)
+    if (elements.fileName) {
+        elements.fileName.textContent = hasData
+            ? `${name} · ${count} ${count === 1 ? 'entry' : 'entries'}`
+            : 'No file loaded';
     }
 }
 

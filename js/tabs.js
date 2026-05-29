@@ -3,7 +3,7 @@
  * Tab Management Module
  */
 
-import { state } from './state.js';
+import { state, scheduleSave } from './state.js';
 import { elements } from './elements.js';
 import { escapeHtml } from './utils.js';
 import { populateForm, clearForm, showWelcome, showEditor } from './ui.js';
@@ -14,14 +14,18 @@ import { populateForm, clearForm, showWelcome, showEditor } from './ui.js';
 export function renderTabs() {
     if (!elements.tabs) return;
 
-    elements.tabs.innerHTML = state.openTabs.map(tab => `
-        <div class="tab ${tab.uid === state.currentEntryUid ? 'active' : ''}" data-uid="${tab.uid}">
+    elements.tabs.innerHTML = state.openTabs.map(tab => {
+        const isActive = tab.uid === state.currentEntryUid;
+        const isUnsaved = state.unsavedEntries.has(tab.uid);
+        return `
+        <div class="tab ${isActive ? 'active' : ''} ${isUnsaved ? 'unsaved' : ''}" data-uid="${tab.uid}">
             <span class="tab-name">${escapeHtml(tab.title)}</span>
             <button class="tab-close" aria-label="Close tab">
                 <span class="material-symbols-rounded">close</span>
             </button>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     if (elements.tabsContainer) {
         elements.tabsContainer.classList.toggle('has-tabs', state.openTabs.length > 0);
@@ -58,7 +62,8 @@ export function addTab(uid, title) {
     
     state.openTabs.push({ uid, title });
     state.currentEntryUid = uid;
-    
+    scheduleSave();
+
     renderTabs();
     showEditor();
 }
@@ -70,11 +75,9 @@ export function addTab(uid, title) {
 export function switchToTab(uid) {
     const tab = state.openTabs.find(t => t.uid === uid);
     if (!tab) return;
-    
-    // Save current entry before switching
-    // This is handled by the main module to avoid circular deps
-    
+
     state.currentEntryUid = uid;
+    scheduleSave();
     
     // Load entry data
     const entry = state.lorebookData?.entries[uid];
@@ -103,7 +106,8 @@ export function closeTab(uid) {
     if (index === -1) return;
     
     state.openTabs.splice(index, 1);
-    
+    scheduleSave();
+
     // If closing current tab, switch to another
     if (state.currentEntryUid === uid) {
         if (state.openTabs.length > 0) {
@@ -127,6 +131,7 @@ export function closeTab(uid) {
 export function closeAllTabs() {
     state.openTabs = [];
     state.currentEntryUid = null;
+    scheduleSave();
     clearForm();
     showWelcome();
     renderTabs();

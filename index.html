@@ -33,7 +33,8 @@
             </div>
         </div>
         <div class="header-center">
-            <span class="file-name" id="fileName">No file loaded</span>
+            <input type="text" class="file-name-input" id="lorebookName" placeholder="No file loaded" disabled>
+            <span class="entry-count" id="entryCount"></span>
         </div>
         <div class="header-right">
             <button class="icon-btn" id="searchBtn" aria-label="Search & Replace">
@@ -52,7 +53,11 @@
             <div class="sidebar-header">
                 <div class="sidebar-title">Entries</div>
                 <div class="sidebar-actions">
-                    <button class="icon-btn small" id="addEntryBtn" aria-label="Add new entry">
+                    <button class="icon-btn small" id="clearSelectionBtn" aria-label="Clear selection" title="Clear selection" style="display: none;">
+                        <span class="material-symbols-rounded">deselect</span>
+                        <span class="count"></span>
+                    </button>
+                    <button class="icon-btn small" id="addEntryBtn" aria-label="Add new entry" title="Add new entry">
                         <span class="material-symbols-rounded">add</span>
                     </button>
                     <select id="sidebarZoom" class="zoom-select" aria-label="Sidebar zoom level">
