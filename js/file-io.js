@@ -493,6 +493,7 @@ function renderScriptImportSummary() {
     if (s.packCount) items.push(`<li>${s.packCount} pack${s.packCount === 1 ? '' : 's'} (${s.packRuleCount} rule${s.packRuleCount === 1 ? '' : 's'})</li>`);
     if (s.locationCount) items.push(`<li>${s.locationCount} location${s.locationCount === 1 ? '' : 's'} (sticky scene entries)</li>`);
     if (s.encounterCount) items.push(`<li>${s.encounterCount} encounter${s.encounterCount === 1 ? '' : 's'} (probabilistic, gated by location)</li>`);
+    if (s.janitorEntryCount) items.push(`<li>${s.janitorEntryCount} JanitorAI lorebook entr${s.janitorEntryCount === 1 ? 'y' : 'ies'}</li>`);
 
     summaryEl.innerHTML = `
         <p class="script-import-total">Detected <strong>${s.total}</strong> entries to import:</p>
