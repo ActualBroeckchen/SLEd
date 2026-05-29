@@ -3,9 +3,9 @@
  * File I/O Module (Import, Export, Merge)
  */
 
-import { state, resetState } from './state.js';
+import { state, resetState, clearUnsaved, saveSession, clearSession } from './state.js';
 import { elements } from './elements.js';
-import { downloadFile } from './utils.js';
+import { downloadFile, escapeHtml, getStatusIcon } from './utils.js';
 import { showToast, openModal, closeModal, updateSidebarHeader, showEditor, showWelcome } from './ui.js';
 import { renderSidebar } from './sidebar.js';
 import { closeAllTabs } from './tabs.js';
@@ -38,12 +38,14 @@ export function createNewLorebook() {
     };
     
     state.fileName = `${name || 'lorebook'}.json`;
-    
+    clearUnsaved();
+
     updateSidebarHeader();
     renderSidebar();
     closeAllTabs();
     showWelcome();
-    
+    saveSession();
+
     showToast('New lorebook created', 'success');
 }
 
@@ -77,11 +79,13 @@ export function importLorebook(file) {
             state.settings = settings;
             state.lorebookData = data;
             state.fileName = file.name;
+            clearUnsaved();
 
             closeAllTabs();
             updateSidebarHeader();
             renderSidebar();
             showWelcome();
+            saveSession();
 
             const count = data.entries ? Object.keys(data.entries).length : 0;
             showToast(`Loaded ${file.name} (${count} ${count === 1 ? 'entry' : 'entries'})`, 'success');
@@ -115,9 +119,14 @@ export function exportLorebook(pretty = true) {
             : JSON.stringify(state.lorebookData);
         
         const blob = new Blob([json], { type: 'application/json' });
-        downloadFile(blob, state.fileName || 'lorebook.json');
-        
-        state.hasUnsavedChanges = false;
+        const exportName = state.fileName && state.fileName.endsWith('.json')
+            ? state.fileName
+            : `${(state.lorebookData.name || state.fileName || 'lorebook').replace(/\.json$/i, '')}.json`;
+        downloadFile(blob, exportName);
+
+        clearUnsaved();
+        renderSidebar();
+        saveSession();
         showToast('Lorebook exported', 'success');
         
     } catch (error) {
@@ -127,42 +136,82 @@ export function exportLorebook(pretty = true) {
 }
 
 /**
- * Export the current lorebook as plain text
+ * Export the current lorebook as plain text, honouring the granular
+ * txtInclude* prefs in state.settings.
+ * @param {Object} [opts] - Optional overrides for include flags + filename
  */
-export function exportLorebookAsText() {
+export function exportLorebookAsText(opts = {}) {
     if (!state.lorebookData) {
         showToast('No lorebook to export', 'error');
         return;
     }
 
+    const s = state.settings;
+    const cfg = {
+        titles: opts.titles ?? s.txtIncludeTitles ?? s.exportTitles ?? true,
+        content: opts.content ?? s.txtIncludeContent ?? true,
+        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? s.exportKeywords ?? true,
+        secondaryKeys: opts.secondaryKeys ?? s.txtIncludeSecondaryKeys ?? false,
+        status: opts.status ?? s.txtIncludeStatus ?? false,
+        comments: opts.comments ?? s.txtIncludeComments ?? s.exportComments ?? false,
+        order: opts.order ?? s.txtIncludeOrder ?? false
+    };
+
+    const baseName = (opts.filename
+        || state.lorebookData.name
+        || (state.fileName || 'lorebook').replace(/\.json$/i, '')
+        || 'lorebook'
+    ).trim();
+
     try {
-        const { exportTitles, exportKeywords, exportComments } = state.settings;
         const entries = Object.values(state.lorebookData.entries || {})
             .sort((a, b) => (a.order || 0) - (b.order || 0));
 
+        const SELECTIVE_LOGIC = ['AND ANY', 'NOT ALL', 'NOT ANY', 'AND ALL'];
         const lines = [];
         lines.push(`# ${state.lorebookData.name || 'Lorebook'}`);
         lines.push('');
 
-        entries.forEach(entry => {
-            if (exportTitles && entry.comment) {
-                lines.push(`## ${entry.comment}`);
+        entries.forEach((entry, idx) => {
+            if (cfg.titles && entry.comment) {
+                const orderTag = cfg.order ? ` [#${entry.order ?? idx}]` : '';
+                lines.push(`## ${entry.comment}${orderTag}`);
+            } else if (cfg.order) {
+                lines.push(`## #${entry.order ?? idx}`);
             }
-            if (exportKeywords && (entry.key || []).length > 0) {
+
+            if (cfg.status) {
+                const status = [];
+                if (entry.constant) status.push('Constant');
+                if (entry.disable) status.push('Disabled');
+                if (status.length) lines.push(`Status: ${status.join(', ')}`);
+            }
+
+            if (cfg.primaryKeys && (entry.key || []).length > 0) {
                 lines.push(`Keywords: ${(entry.key || []).join(', ')}`);
             }
-            if (exportComments && entry.comment) {
+
+            if (cfg.secondaryKeys && (entry.keysecondary || []).length > 0) {
+                const logic = SELECTIVE_LOGIC[entry.selectiveLogic] || `Logic ${entry.selectiveLogic}`;
+                lines.push(`Secondary (${logic}): ${(entry.keysecondary || []).join(', ')}`);
+            }
+
+            if (cfg.comments && entry.comment) {
                 lines.push(`Comment: ${entry.comment}`);
             }
-            lines.push(entry.content || '');
+
+            if (cfg.content) {
+                lines.push(entry.content || '');
+            }
+
             lines.push('');
             lines.push('---');
             lines.push('');
         });
 
         const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const baseName = (state.fileName || 'lorebook').replace(/\.json$/i, '');
-        downloadFile(blob, `${baseName}.txt`);
+        const cleanName = baseName.replace(/\.txt$/i, '').replace(/[\\/:*?"<>|]/g, '_');
+        downloadFile(blob, `${cleanName || 'lorebook'}.txt`);
 
         showToast('Lorebook exported as text', 'success');
     } catch (error) {
@@ -211,9 +260,8 @@ export function exportSelectedEntries(uids) {
  * Open the merge modal
  */
 /**
- * Start the merge flow: prompt for a file, then merge it in.
- * (The modal-based entry-by-entry picker isn't wired yet; this does a
- * direct merge with sensible defaults.)
+ * Start the merge flow: prompt for a file.
+ * The file picker change handler stages the source and opens the modal.
  */
 export function openMergeModal() {
     if (!state.lorebookData) {
@@ -226,129 +274,155 @@ export function openMergeModal() {
 
 export function closeMergeModal() {
     closeModal('mergeModal');
+    state.mergeStaging = null;
+    state.mergeSelected = new Set();
     const input = document.getElementById('merge-file-input');
     if (input) input.value = '';
 }
 
 /**
- * Merge another lorebook into the current one
- * @param {File} file - File to merge
- * @param {Object} options - Merge options
+ * Called after the user picks a merge source file. Parses it, builds the
+ * selection UI in the merge modal, and opens the modal.
  */
-export function mergeLorebook(file, options = {}) {
+export function stageMergeFile(file) {
     if (!file) return;
-    
     if (!state.lorebookData) {
-        showToast('No lorebook loaded to merge into', 'error');
+        showToast('Load or create a lorebook first', 'error');
         return;
     }
-    
-    const {
-        overwriteDuplicates = false,
-        mergeByComment = false,
-        preserveOrder = true
-    } = options;
-    
+
     const reader = new FileReader();
-    
     reader.onload = (e) => {
         try {
-            const mergeData = JSON.parse(e.target.result);
-            
-            if (!mergeData.entries || typeof mergeData.entries !== 'object') {
+            const data = JSON.parse(e.target.result);
+            if (!data.entries || typeof data.entries !== 'object') {
                 throw new Error('Invalid lorebook format');
             }
-            
-            let addedCount = 0;
-            let updatedCount = 0;
-            let skippedCount = 0;
-            
-            // Get current max UID and order
-            const existingUids = Object.keys(state.lorebookData.entries).map(k => parseInt(k));
-            let nextUid = existingUids.length > 0 ? Math.max(...existingUids) + 1 : 0;
-            
-            const existingOrders = Object.values(state.lorebookData.entries).map(e => e.order || 0);
-            let nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 0;
-            
-            // Build comment index if merging by comment
-            const commentIndex = {};
-            if (mergeByComment) {
-                Object.entries(state.lorebookData.entries).forEach(([uid, entry]) => {
-                    const comment = (entry.comment || '').toLowerCase().trim();
-                    if (comment) {
-                        commentIndex[comment] = uid;
-                    }
-                });
-            }
-            
-            // Process merge entries
-            Object.values(mergeData.entries).forEach(entry => {
-                const comment = (entry.comment || '').toLowerCase().trim();
-                let existingUid = null;
-                
-                // Check for duplicates
-                if (mergeByComment && comment && commentIndex[comment]) {
-                    existingUid = commentIndex[comment];
-                }
-                
-                if (existingUid !== null) {
-                    // Duplicate found
-                    if (overwriteDuplicates) {
-                        // Update existing entry but keep UID
-                        const newEntry = { ...entry, uid: parseInt(existingUid) };
-                        if (preserveOrder) {
-                            newEntry.order = state.lorebookData.entries[existingUid].order;
-                        }
-                        state.lorebookData.entries[existingUid] = newEntry;
-                        updatedCount++;
-                    } else {
-                        skippedCount++;
-                    }
-                } else {
-                    // New entry
-                    const newEntry = { ...entry };
-                    newEntry.uid = nextUid;
-                    newEntry.displayIndex = nextUid;
-                    
-                    if (!preserveOrder) {
-                        newEntry.order = nextOrder++;
-                    }
-                    
-                    state.lorebookData.entries[nextUid] = newEntry;
-                    
-                    if (mergeByComment && comment) {
-                        commentIndex[comment] = nextUid.toString();
-                    }
-                    
-                    nextUid++;
-                    addedCount++;
-                }
-            });
-            
-            state.hasUnsavedChanges = true;
-            
-            updateSidebarHeader();
-            renderSidebar();
-            closeMergeModal();
-            
-            let message = `Merge complete: ${addedCount} added`;
-            if (updatedCount > 0) message += `, ${updatedCount} updated`;
-            if (skippedCount > 0) message += `, ${skippedCount} skipped`;
-            
-            showToast(message, 'success');
-            
+            data.name = data.name || file.name.replace(/\.json$/i, '');
+            state.mergeStaging = data;
+            // Pre-select all entries by default
+            state.mergeSelected = new Set(Object.keys(data.entries).map(k => parseInt(k, 10)));
+            renderMergeList();
+            openModal('mergeModal');
         } catch (error) {
-            console.error('Merge error:', error);
-            showToast(`Failed to merge: ${error.message}`, 'error');
+            console.error('Merge stage error:', error);
+            showToast(`Failed to read merge file: ${error.message}`, 'error');
         }
     };
-    
-    reader.onerror = () => {
-        showToast('Failed to read file', 'error');
-    };
-    
+    reader.onerror = () => showToast('Failed to read file', 'error');
     reader.readAsText(file);
 }
+
+/**
+ * Render the merge entry list in the merge modal.
+ */
+export function renderMergeList() {
+    const list = document.getElementById('mergeList');
+    if (!list) return;
+    const staging = state.mergeStaging;
+    if (!staging || !staging.entries) {
+        list.innerHTML = '<p class="empty-state">Nothing to merge.</p>';
+        return;
+    }
+
+    const entries = Object.values(staging.entries).sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sourceName = staging.name || 'source lorebook';
+    const currentName = state.lorebookData?.name || state.fileName?.replace(/\.json$/i, '') || 'current lorebook';
+
+    list.innerHTML = `
+        <p class="merge-instructions">
+            Merging <strong>${escapeHtml(sourceName)}</strong> into
+            <strong>${escapeHtml(currentName)}</strong>.
+            <span class="merge-count">${state.mergeSelected.size} of ${entries.length} selected</span>
+        </p>
+        <div class="merge-entry-list">
+            ${entries.map(entry => {
+                const isSelected = state.mergeSelected.has(entry.uid);
+                const icon = getStatusIcon(entry);
+                const keys = (entry.key || []).slice(0, 5).join(', ');
+                const moreKeys = (entry.key || []).length > 5 ? '…' : '';
+                const badges = [];
+                if (entry.constant) badges.push('<span class="status-badge status-constant">Constant</span>');
+                if (entry.disable) badges.push('<span class="status-badge status-disabled">Disabled</span>');
+                return `
+                    <label class="merge-entry-item ${isSelected ? 'selected' : ''}">
+                        <input type="checkbox" data-uid="${entry.uid}" ${isSelected ? 'checked' : ''}>
+                        <div class="merge-entry-body">
+                            <div class="merge-entry-title">${icon} ${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
+                            ${keys ? `<div class="merge-entry-keys">${escapeHtml(keys)}${moreKeys}</div>` : ''}
+                            ${badges.length ? `<div class="merge-entry-status">${badges.join('')}</div>` : ''}
+                        </div>
+                    </label>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    list.querySelectorAll('input[type="checkbox"][data-uid]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const uid = parseInt(cb.dataset.uid, 10);
+            if (cb.checked) state.mergeSelected.add(uid);
+            else state.mergeSelected.delete(uid);
+            const label = cb.closest('.merge-entry-item');
+            if (label) label.classList.toggle('selected', cb.checked);
+            const counter = list.querySelector('.merge-count');
+            if (counter) counter.textContent = `${state.mergeSelected.size} of ${entries.length} selected`;
+        });
+    });
+}
+
+export function mergeSelectAll() {
+    if (!state.mergeStaging) return;
+    state.mergeSelected = new Set(
+        Object.keys(state.mergeStaging.entries).map(k => parseInt(k, 10))
+    );
+    renderMergeList();
+}
+
+export function mergeSelectNone() {
+    state.mergeSelected = new Set();
+    renderMergeList();
+}
+
+/**
+ * Execute the merge: bring the selected entries from mergeStaging into
+ * the current lorebook with fresh UIDs and orders.
+ */
+export function confirmMerge() {
+    if (!state.mergeStaging || !state.lorebookData) return;
+    if (state.mergeSelected.size === 0) {
+        showToast('No entries selected', 'error');
+        return;
+    }
+
+    const existingUids = Object.keys(state.lorebookData.entries).map(k => parseInt(k, 10));
+    let nextUid = existingUids.length ? Math.max(...existingUids) + 1 : 0;
+    const existingOrders = Object.values(state.lorebookData.entries).map(e => e.order || 0);
+    let nextOrder = existingOrders.length ? Math.max(...existingOrders) + 1 : 0;
+
+    let added = 0;
+    Object.values(state.mergeStaging.entries).forEach(entry => {
+        if (!state.mergeSelected.has(entry.uid)) return;
+        const clone = JSON.parse(JSON.stringify(entry));
+        clone.uid = nextUid;
+        clone.displayIndex = nextUid;
+        clone.order = nextOrder;
+        state.lorebookData.entries[nextUid] = clone;
+        state.unsavedEntries.add(nextUid);
+        nextUid++;
+        nextOrder++;
+        added++;
+    });
+
+    state.hasUnsavedChanges = true;
+    closeMergeModal();
+    updateSidebarHeader();
+    renderSidebar();
+    saveSession();
+    showToast(`Merged ${added} ${added === 1 ? 'entry' : 'entries'}`, 'success');
+}
+
+// (mergeLorebook was replaced by the stageMergeFile + confirmMerge flow above.)
 
 /**
  * Handle file drop

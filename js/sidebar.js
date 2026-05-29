@@ -9,14 +9,12 @@ import { escapeHtml, getStatusIcon } from './utils.js';
 
 /**
  * Get filtered and sorted entries
- * @returns {Array} Filtered entries
  */
 export function getFilteredEntries() {
     if (!state.lorebookData?.entries) return [];
-    
+
     let entries = Object.values(state.lorebookData.entries);
-    
-    // Apply filter
+
     if (state.filterText) {
         const filterLower = state.filterText.toLowerCase();
         entries = entries.filter(entry => {
@@ -24,17 +22,14 @@ export function getFilteredEntries() {
             const keys = (entry.key || []).join(' ').toLowerCase();
             const content = (entry.content || '').toLowerCase();
             const group = (entry.group || '').toLowerCase();
-            
-            return comment.includes(filterLower) ||
-                   keys.includes(filterLower) ||
-                   content.includes(filterLower) ||
-                   group.includes(filterLower);
+            return comment.includes(filterLower)
+                || keys.includes(filterLower)
+                || content.includes(filterLower)
+                || group.includes(filterLower);
         });
     }
-    
-    // Sort by order
+
     entries.sort((a, b) => (a.order || 0) - (b.order || 0));
-    
     return entries;
 }
 
@@ -43,12 +38,12 @@ export function getFilteredEntries() {
  */
 export function renderSidebar() {
     if (!elements.entryList) return;
-    
+
     const entries = getFilteredEntries();
+    updateClearSelectionBtn();
 
     if (entries.length === 0) {
         if (!state.lorebookData) {
-            // No lorebook loaded — show the welcome/import empty state
             elements.entryList.innerHTML = `
                 <div class="empty-state" id="emptyState">
                     <span class="material-symbols-rounded">folder_open</span>
@@ -56,7 +51,6 @@ export function renderSidebar() {
                     <button class="btn primary" id="emptyImportBtn">Import Lorebook</button>
                 </div>
             `;
-            // Re-wire the import button (it lives inside innerHTML we just replaced)
             const btn = document.getElementById('emptyImportBtn');
             if (btn) {
                 btn.addEventListener('click', () => {
@@ -74,69 +68,133 @@ export function renderSidebar() {
         }
         return;
     }
-    
+
+    const zoom = state.settings.sidebarZoom || 'normal';
+    const maxPillKeys = zoom === 'detailed' ? 8 : 3;
+
     elements.entryList.innerHTML = entries.map(entry => {
         const isActive = entry.uid === state.currentEntryUid;
+        const isSelected = state.selectedEntries.has(entry.uid);
+        const isUnsaved = state.unsavedEntries.has(entry.uid);
         const statusIcon = getStatusIcon(entry);
-        const keys = (entry.key || []).slice(0, 3).join(', ');
-        const hasMoreKeys = (entry.key || []).length > 3;
+        const keys = entry.key || [];
+        const order = entry.order ?? 0;
+
+        const visibleKeys = keys.slice(0, maxPillKeys);
+        const moreCount = Math.max(0, keys.length - maxPillKeys);
+        const pillsHtml = visibleKeys
+            .map(k => `<span class="entry-keyword-pill">${escapeHtml(k)}</span>`)
+            .join('') + (moreCount ? `<span class="entry-keyword-pill more">+${moreCount}</span>` : '');
+
+        const badges = [];
+        if (entry.constant) badges.push('<span class="status-badge status-constant">Constant</span>');
+        if (entry.disable) badges.push('<span class="status-badge status-disabled">Disabled</span>');
+
+        const contentPreview = (entry.content || '').slice(0, 240);
 
         return `
-            <div class="entry-item ${isActive ? 'active' : ''}"
+            <div class="entry-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${isUnsaved ? 'unsaved' : ''}"
                  data-uid="${entry.uid}"
                  draggable="true">
+                <input type="checkbox" class="entry-checkbox" ${isSelected ? 'checked' : ''} aria-label="Select entry">
+                <input type="number" class="entry-order-input" value="${order}" min="0" aria-label="Entry order" title="Order">
                 <div class="entry-status">${statusIcon}</div>
                 <div class="entry-info">
                     <div class="entry-name">${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
-                    <div class="entry-keywords">${escapeHtml(keys)}${hasMoreKeys ? '…' : ''}</div>
+                    ${pillsHtml ? `<div class="entry-keywords">${pillsHtml}</div>` : ''}
+                    ${badges.length ? `<div class="entry-item-status">${badges.join('')}</div>` : ''}
+                    ${contentPreview ? `<div class="entry-content-preview">${escapeHtml(contentPreview)}</div>` : ''}
                 </div>
                 <div class="entry-actions">
-                    <button class="icon-btn small entry-action-toggle"
-                            aria-label="${entry.disable ? 'Enable' : 'Disable'} entry"
-                            title="${entry.disable ? 'Enable' : 'Disable'}">
-                        <span class="material-symbols-rounded">
-                            ${entry.disable ? 'toggle_off' : 'toggle_on'}
-                        </span>
+                    <button class="icon-btn small entry-action-insert-above" title="Insert entry above" aria-label="Insert above">
+                        <span class="material-symbols-rounded">add_row_above</span>
+                    </button>
+                    <button class="icon-btn small entry-action-insert-below" title="Insert entry below" aria-label="Insert below">
+                        <span class="material-symbols-rounded">add_row_below</span>
+                    </button>
+                    <button class="icon-btn small entry-action-copy" title="Duplicate entry" aria-label="Duplicate">
+                        <span class="material-symbols-rounded">content_copy</span>
+                    </button>
+                    <button class="icon-btn small entry-action-toggle" title="${entry.disable ? 'Enable' : 'Disable'}" aria-label="${entry.disable ? 'Enable' : 'Disable'}">
+                        <span class="material-symbols-rounded">${entry.disable ? 'toggle_off' : 'toggle_on'}</span>
+                    </button>
+                    <button class="icon-btn small entry-action-delete" title="Delete entry" aria-label="Delete">
+                        <span class="material-symbols-rounded">delete</span>
                     </button>
                 </div>
             </div>
         `;
     }).join('');
-    
-    // Add event listeners
+
     setupSidebarEventListeners();
 }
 
-/**
- * Setup event listeners for sidebar items
- */
+function updateClearSelectionBtn() {
+    if (!elements.clearSelectionBtn) return;
+    const count = state.selectedEntries.size;
+    elements.clearSelectionBtn.style.display = count > 0 ? '' : 'none';
+    const label = elements.clearSelectionBtn.querySelector('.count');
+    if (label) label.textContent = count > 0 ? `(${count})` : '';
+}
+
 function setupSidebarEventListeners() {
     if (!elements.entryList) return;
-    
+
     elements.entryList.querySelectorAll('.entry-item').forEach(item => {
         const uid = parseInt(item.dataset.uid);
-        
-        // Click to open
+
+        // Click to open (ignore clicks on buttons / inputs inside)
         item.addEventListener('click', (e) => {
-            if (!e.target.closest('.entry-actions')) {
-                // Import dynamically to avoid circular dependency
-                import('./entries.js').then(({ openEntry }) => {
-                    openEntry(uid);
-                });
+            if (e.target.closest('.entry-actions') ||
+                e.target.closest('.entry-checkbox') ||
+                e.target.closest('.entry-order-input')) {
+                return;
             }
+            import('./entries.js').then(({ openEntry }) => openEntry(uid));
         });
-        
-        // Toggle button
-        const toggleBtn = item.querySelector('.entry-action-toggle');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                import('./entries.js').then(({ toggleEntryEnabled }) => {
-                    toggleEntryEnabled(uid);
-                });
+
+        // Multi-select checkbox
+        const checkbox = item.querySelector('.entry-checkbox');
+        if (checkbox) {
+            checkbox.addEventListener('click', e => e.stopPropagation());
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    state.selectedEntries.add(uid);
+                } else {
+                    state.selectedEntries.delete(uid);
+                }
+                item.classList.toggle('selected', checkbox.checked);
+                updateClearSelectionBtn();
             });
         }
-        
+
+        // Inline order edit
+        const orderInput = item.querySelector('.entry-order-input');
+        if (orderInput) {
+            orderInput.addEventListener('click', e => e.stopPropagation());
+            orderInput.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const value = parseInt(e.target.value, 10);
+                if (Number.isNaN(value)) return;
+                import('./entries.js').then(({ setEntryOrder }) => setEntryOrder(uid, value));
+            });
+        }
+
+        // Action buttons
+        const wire = (selector, mod) => {
+            const btn = item.querySelector(selector);
+            if (!btn) return;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                import('./entries.js').then(mod);
+            });
+        };
+        wire('.entry-action-insert-above', ({ insertEntryAbove }) => insertEntryAbove(uid));
+        wire('.entry-action-insert-below', ({ insertEntryBelow }) => insertEntryBelow(uid));
+        wire('.entry-action-copy', ({ duplicateEntry }) => duplicateEntry(uid));
+        wire('.entry-action-toggle', ({ toggleEntryEnabled }) => toggleEntryEnabled(uid));
+        wire('.entry-action-delete', ({ deleteEntry }) => deleteEntry(uid));
+
         // Drag and drop
         item.addEventListener('dragstart', handleDragStart);
         item.addEventListener('dragend', handleDragEnd);
@@ -146,99 +204,91 @@ function setupSidebarEventListeners() {
 }
 
 // Drag and drop state
-let draggedItem = null;
+let draggedUids = [];
 
-/**
- * Handle drag start
- * @param {DragEvent} e - Drag event
- */
 function handleDragStart(e) {
-    draggedItem = this;
+    const uid = parseInt(this.dataset.uid);
+    // If the dragged item is part of a multi-selection, drag all selected
+    if (state.selectedEntries.has(uid) && state.selectedEntries.size > 1) {
+        draggedUids = [...state.selectedEntries];
+    } else {
+        draggedUids = [uid];
+    }
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', this.dataset.uid);
+    e.dataTransfer.setData('text/plain', String(uid));
 }
 
-/**
- * Handle drag end
- */
 function handleDragEnd() {
     this.classList.remove('dragging');
-    draggedItem = null;
-    
-    // Remove all drag-over states
+    draggedUids = [];
     document.querySelectorAll('.entry-item.drag-over').forEach(el => {
         el.classList.remove('drag-over');
     });
 }
 
-/**
- * Handle drag over
- * @param {DragEvent} e - Drag event
- */
 function handleDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    
-    if (this !== draggedItem) {
+    const targetUid = parseInt(this.dataset.uid);
+    if (!draggedUids.includes(targetUid)) {
         this.classList.add('drag-over');
     }
 }
 
-/**
- * Handle drop
- * @param {DragEvent} e - Drag event
- */
 function handleDrop(e) {
     e.preventDefault();
     this.classList.remove('drag-over');
-    
-    if (!draggedItem || this === draggedItem) return;
-    
-    const draggedUid = parseInt(draggedItem.dataset.uid);
     const targetUid = parseInt(this.dataset.uid);
-    
-    reorderEntries(draggedUid, targetUid);
+    if (!draggedUids.length || draggedUids.includes(targetUid)) return;
+    moveEntriesBefore(draggedUids, targetUid);
 }
 
 /**
- * Reorder entries after drag and drop
- * @param {number} draggedUid - UID of dragged entry
- * @param {number} targetUid - UID of target entry
+ * Move a set of entries so they land just before the target entry (in order),
+ * keeping their relative order.
  */
-function reorderEntries(draggedUid, targetUid) {
+function moveEntriesBefore(uids, targetUid) {
     if (!state.lorebookData?.entries) return;
-    
-    const draggedEntry = state.lorebookData.entries[draggedUid];
-    const targetEntry = state.lorebookData.entries[targetUid];
-    
-    if (!draggedEntry || !targetEntry) return;
-    
-    // Swap orders
-    const tempOrder = draggedEntry.order;
-    draggedEntry.order = targetEntry.order;
-    targetEntry.order = tempOrder;
-    
+    const target = state.lorebookData.entries[targetUid];
+    if (!target) return;
+
+    const all = Object.values(state.lorebookData.entries)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // Preserve relative order of the moved set
+    const movingSet = new Set(uids);
+    const moving = all.filter(e => movingSet.has(e.uid));
+    const remaining = all.filter(e => !movingSet.has(e.uid));
+
+    const targetIdx = remaining.findIndex(e => e.uid === targetUid);
+    if (targetIdx === -1) return;
+
+    remaining.splice(targetIdx, 0, ...moving);
+
+    remaining.forEach((entry, index) => {
+        entry.order = index;
+    });
+
+    moving.forEach(e => state.unsavedEntries.add(e.uid));
     state.hasUnsavedChanges = true;
     renderSidebar();
 }
 
-/**
- * Update filter text and re-render
- * @param {string} text - Filter text
- */
 export function setFilter(text) {
     state.filterText = text;
     renderSidebar();
 }
 
-/**
- * Clear the filter
- */
 export function clearFilter() {
     state.filterText = '';
     if (elements.sidebarSearch) {
         elements.sidebarSearch.value = '';
     }
+    renderSidebar();
+}
+
+export function clearSelectedEntries() {
+    state.selectedEntries.clear();
     renderSidebar();
 }

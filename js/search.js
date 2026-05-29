@@ -3,7 +3,7 @@
  * Search & Replace Module
  */
 
-import { state } from './state.js';
+import { state, markEntryUnsaved } from './state.js';
 import { elements } from './elements.js';
 import { escapeHtml, escapeRegExp, replaceAt } from './utils.js';
 import { showToast, openModal, closeModal } from './ui.js';
@@ -349,13 +349,13 @@ export function replaceCurrent() {
             entry.comment = replaceAt(entry.comment || '', result.index, result.length, searchState.replaceText);
             break;
     }
-    
-    state.hasUnsavedChanges = true;
-    
+
+    markEntryUnsaved(result.uid);
+
     // Re-run search
     performSearch();
     renderSidebar();
-    
+
     showToast('Replaced', 'success');
 }
 
@@ -421,11 +421,10 @@ export function replaceAll() {
                     entry.comment = replaceAt(entry.comment || '', result.index, result.length, searchState.replaceText);
                     break;
             }
+            markEntryUnsaved(result.uid);
         });
     });
-    
-    state.hasUnsavedChanges = true;
-    
+
     // Clear and re-run search
     performSearch();
     renderSidebar();
