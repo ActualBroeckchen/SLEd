@@ -1828,3 +1828,93 @@ kbd {
 .entry-editor[data-view="side-by-side"] .entry-form:last-child {
     border-right: none;
 }
+
+/* ========================================
+   Keyword pill input (in-form)
+   ======================================== */
+
+.keyword-pill-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    cursor: text;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.keyword-pill-input:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+    outline: none;
+}
+
+.keyword-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-light);
+    color: var(--text-primary);
+    padding: 2px 4px 2px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    max-width: 100%;
+}
+
+.keyword-pill .text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 22em;
+}
+
+.keyword-pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.keyword-pill-remove:hover,
+.keyword-pill-remove:focus {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.keyword-pill-entry {
+    flex: 1 1 8em;
+    min-width: 8em;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    outline: none;
+    padding: 4px 2px;
+}
+
+.keyword-pill-entry::placeholder {
+    color: var(--text-muted);
+}
+
+.form-hint code {
+    font-family: var(--font-editor-mono);
+    background: var(--bg-tertiary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}

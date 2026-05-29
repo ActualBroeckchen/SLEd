@@ -147,12 +147,12 @@ export function exportLorebookAsText(opts = {}) {
 
     const s = state.settings;
     const cfg = {
-        titles: opts.titles ?? s.txtIncludeTitles ?? s.exportTitles ?? true,
+        titles: opts.titles ?? s.txtIncludeTitles ?? true,
         content: opts.content ?? s.txtIncludeContent ?? true,
-        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? s.exportKeywords ?? true,
+        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? true,
         secondaryKeys: opts.secondaryKeys ?? s.txtIncludeSecondaryKeys ?? false,
         status: opts.status ?? s.txtIncludeStatus ?? false,
-        comments: opts.comments ?? s.txtIncludeComments ?? s.exportComments ?? false,
+        comments: opts.comments ?? s.txtIncludeComments ?? false,
         order: opts.order ?? s.txtIncludeOrder ?? false
     };
 

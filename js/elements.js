@@ -65,12 +65,7 @@ export const elements = {
     mergeFileInput: null,
 
     // Settings
-    themeLightBtn: null,
-    themeDarkBtn: null,
     dyslexiaFont: null,
-    exportTitles: null,
-    exportKeywords: null,
-    exportComments: null,
 
     // Export modal buttons
     exportJsonBtn: null,
@@ -138,11 +133,6 @@ export function initElements() {
 
     // Settings
     elements.dyslexiaFont = document.getElementById('dyslexiaFont');
-    elements.exportTitles = document.getElementById('exportTitles');
-    elements.exportKeywords = document.getElementById('exportKeywords');
-    elements.exportComments = document.getElementById('exportComments');
-    elements.themeLightBtn = document.getElementById('themeLightBtn');
-    elements.themeDarkBtn = document.getElementById('themeDarkBtn');
 
     // Export modal buttons
     elements.exportJsonBtn = document.getElementById('exportJson');

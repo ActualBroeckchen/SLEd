@@ -50,8 +50,10 @@ export function buildEntryFormHtml(uid) {
 
             <div class="form-row" id="${_('keywordsSection')}">
                 <label class="form-label" for="${_('primaryKeywords')}">Primary Keywords</label>
-                <input type="text" id="${_('primaryKeywords')}" class="form-input" placeholder="keyword1, keyword2, …">
-                <small class="form-hint">Comma-separated keywords that trigger this entry</small>
+                <div class="keyword-pill-input" id="${_('primaryKeywords')}" data-uid="${uid}" data-field="key">
+                    <input type="text" class="keyword-pill-entry" placeholder="Type and press Enter or comma…" aria-label="Add a keyword">
+                </div>
+                <small class="form-hint">Enter or comma adds a keyword. Backspace removes the last. Regex like <code>/foo|bar/i</code> works.</small>
             </div>
 
             <div class="form-row" id="${_('secondaryKeywordsSection')}">
@@ -64,7 +66,9 @@ export function buildEntryFormHtml(uid) {
                         <option value="2">NOT ANY</option>
                     </select>
                 </div>
-                <input type="text" id="${_('secondaryKeywords')}" class="form-input" placeholder="optional filter keywords…">
+                <div class="keyword-pill-input" id="${_('secondaryKeywords')}" data-uid="${uid}" data-field="keysecondary">
+                    <input type="text" class="keyword-pill-entry" placeholder="Optional filter keywords…" aria-label="Add a secondary keyword">
+                </div>
             </div>
 
             <div class="form-row">
@@ -277,4 +281,120 @@ export function triggerCheckboxes(uid) {
     const form = document.getElementById(`entryForm_${uid}`);
     if (!form) return [];
     return form.querySelectorAll('input[data-trigger]');
+}
+
+/* ---------- Keyword pill input ---------- */
+
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function buildPill(value) {
+    const span = document.createElement('span');
+    span.className = 'keyword-pill';
+    span.dataset.value = value;
+    span.innerHTML = `<span class="text">${escapeHtml(value)}</span><button type="button" class="keyword-pill-remove" aria-label="Remove ${escapeHtml(value)}" tabindex="-1">×</button>`;
+    return span;
+}
+
+/**
+ * Render the pills inside a keyword container from an array of values.
+ * Preserves any text the user has typed but not committed.
+ */
+export function setKeywordPills(uid, base, values) {
+    const container = document.getElementById(fid(base, uid));
+    if (!container) return;
+    container.querySelectorAll('.keyword-pill').forEach(p => p.remove());
+    const input = container.querySelector('.keyword-pill-entry');
+    (values || []).forEach(v => {
+        const value = (v ?? '').toString();
+        if (!value) return;
+        container.insertBefore(buildPill(value), input);
+    });
+}
+
+/**
+ * Extract keyword values from the pill container, including any text the
+ * user has typed but not yet committed.
+ */
+export function getKeywordValues(uid, base) {
+    const container = document.getElementById(fid(base, uid));
+    if (!container) return [];
+    const pills = Array.from(container.querySelectorAll('.keyword-pill'))
+        .map(p => p.dataset.value || p.querySelector('.text')?.textContent || '');
+    const input = container.querySelector('.keyword-pill-entry');
+    const pending = input ? input.value.trim() : '';
+    if (pending) pills.push(pending);
+    return pills.map(v => v.trim()).filter(Boolean);
+}
+
+/**
+ * Wire keyboard / paste / click handlers on a pill container.
+ * Dispatches 'change' on the container so the form's autosave catches it.
+ */
+export function wireKeywordPillInput(container) {
+    if (!container || container.dataset.wired === '1') return;
+    container.dataset.wired = '1';
+
+    const input = container.querySelector('.keyword-pill-entry');
+    if (!input) return;
+
+    const notify = () => container.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const commit = (text) => {
+        const value = (text ?? '').trim();
+        if (!value) return false;
+        const existing = Array.from(container.querySelectorAll('.keyword-pill'))
+            .map(p => p.dataset.value);
+        if (existing.includes(value)) return false;
+        container.insertBefore(buildPill(value), input);
+        return true;
+    };
+
+    // Click anywhere in the empty space → focus the entry
+    container.addEventListener('click', (e) => {
+        if (e.target === container) input.focus();
+        const removeBtn = e.target.closest('.keyword-pill-remove');
+        if (removeBtn) {
+            removeBtn.closest('.keyword-pill').remove();
+            notify();
+            input.focus();
+        }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            if (commit(input.value)) notify();
+            input.value = '';
+        } else if (e.key === 'Backspace' && input.value === '') {
+            const pills = container.querySelectorAll('.keyword-pill');
+            const last = pills[pills.length - 1];
+            if (last) {
+                last.remove();
+                notify();
+            }
+        }
+    });
+
+    // Pasting a comma-separated list adds them as separate pills
+    input.addEventListener('paste', (e) => {
+        const text = e.clipboardData?.getData('text');
+        if (!text || !text.includes(',')) return;
+        e.preventDefault();
+        let added = false;
+        for (const piece of text.split(',')) {
+            if (commit(piece)) added = true;
+        }
+        input.value = '';
+        if (added) notify();
+    });
+
+    // Committing on blur catches partially-typed keywords on form submit / tab away
+    input.addEventListener('blur', () => {
+        if (commit(input.value)) notify();
+        input.value = '';
+    });
 }

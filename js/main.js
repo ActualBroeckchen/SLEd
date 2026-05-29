@@ -246,43 +246,11 @@ function setupModalCloseHandlers() {
 /* ---------- Settings modal handlers ---------- */
 
 function setupSettingsHandlers() {
-    if (elements.themeLightBtn) {
-        elements.themeLightBtn.addEventListener('click', () => {
-            state.settings.theme = 'light';
-            saveSettings();
-            applyTheme();
-        });
-    }
-    if (elements.themeDarkBtn) {
-        elements.themeDarkBtn.addEventListener('click', () => {
-            state.settings.theme = 'dark';
-            saveSettings();
-            applyTheme();
-        });
-    }
     if (elements.dyslexiaFont) {
         elements.dyslexiaFont.addEventListener('change', (e) => {
             state.settings.dyslexiaFont = e.target.checked;
             saveSettings();
             applyDyslexiaFont();
-        });
-    }
-    if (elements.exportTitles) {
-        elements.exportTitles.addEventListener('change', (e) => {
-            state.settings.exportTitles = e.target.checked;
-            saveSettings();
-        });
-    }
-    if (elements.exportKeywords) {
-        elements.exportKeywords.addEventListener('change', (e) => {
-            state.settings.exportKeywords = e.target.checked;
-            saveSettings();
-        });
-    }
-    if (elements.exportComments) {
-        elements.exportComments.addEventListener('change', (e) => {
-            state.settings.exportComments = e.target.checked;
-            saveSettings();
         });
     }
 }
