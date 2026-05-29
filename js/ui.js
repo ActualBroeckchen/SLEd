@@ -3,8 +3,16 @@
  * UI Functions Module (Theme, Modals, Toasts, Form helpers)
  */
 
-import { state } from './state.js';
+import { state, markEntryUnsaved } from './state.js';
 import { elements } from './elements.js';
+import { debounce } from './utils.js';
+import {
+    buildEntryFormHtml,
+    fid,
+    field,
+    activationRadios,
+    triggerCheckboxes
+} from './form-template.js';
 
 /* ---------- Theme & Font ---------- */
 
@@ -23,6 +31,11 @@ export function applyTheme() {
         elements.themeToggle.title = theme === 'dark'
             ? 'Switch to light mode (Ctrl+D)'
             : 'Switch to dark mode (Ctrl+D)';
+    }
+    // Keep the mobile address bar / PWA chrome in sync with the theme
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+        meta.setAttribute('content', theme === 'dark' ? '#1a1815' : '#faf7f2');
     }
 }
 
@@ -235,17 +248,17 @@ function applyActivationType(data, activationType) {
 
 /* ---------- Position row toggles ---------- */
 
-export function updatePositionRowVisibility() {
-    const positionValue = elements.entryPosition ? parseInt(elements.entryPosition.value, 10) : 0;
-    if (elements.depthRow) {
-        elements.depthRow.style.display = positionValue === 4 ? '' : 'none';
-    }
-    if (elements.outletRow) {
-        elements.outletRow.style.display = positionValue === 7 ? '' : 'none';
-    }
+export function updatePositionRowVisibility(uid) {
+    if (uid === undefined || uid === null) return;
+    const position = field('insertionPosition', uid);
+    const depth = field('depthRow', uid);
+    const outlet = field('outletRow', uid);
+    const v = position ? parseInt(position.value, 10) : 0;
+    if (depth) depth.style.display = v === 4 ? '' : 'none';
+    if (outlet) outlet.style.display = v === 7 ? '' : 'none';
 }
 
-/* ---------- Form populate/read ---------- */
+/* ---------- Form populate/read (uid-scoped) ---------- */
 
 function setRadioGroup(radios, value) {
     if (!radios) return;
@@ -260,81 +273,89 @@ function readRadioGroup(radios, fallback) {
     return fallback;
 }
 
-export function populateForm(entry) {
-    if (!entry || !elements.entryForm) return;
+/**
+ * Fill the per-uid form with values from `entry`.
+ */
+export function populateForm(uid, entry) {
+    if (uid === undefined || uid === null || !entry) return;
+    const form = document.getElementById(`entryForm_${uid}`);
+    if (!form) return;
+    const set = (base, value) => {
+        const el = field(base, uid);
+        if (el) el.value = value;
+    };
+    const check = (base, value) => {
+        const el = field(base, uid);
+        if (el) el.checked = !!value;
+    };
 
     // Basic
-    if (elements.entryComment) elements.entryComment.value = entry.comment || '';
-    if (elements.entryKeys) elements.entryKeys.value = (entry.key || []).join(', ');
-    if (elements.entrySecondaryKeys) elements.entrySecondaryKeys.value = (entry.keysecondary || []).join(', ');
-    if (elements.selectiveLogic) elements.selectiveLogic.value = entry.selectiveLogic ?? 0;
-    if (elements.entryContent) elements.entryContent.value = entry.content || '';
+    set('entryName', entry.comment || '');
+    set('primaryKeywords', (entry.key || []).join(', '));
+    set('secondaryKeywords', (entry.keysecondary || []).join(', '));
+    set('selectiveLogic', entry.selectiveLogic ?? 0);
+    set('entryContent', entry.content || '');
 
     // Activation
-    setRadioGroup(elements.activationRadios, getActivationType(entry));
+    setRadioGroup(activationRadios(uid), getActivationType(entry));
 
     // Position
-    if (elements.entryPosition) elements.entryPosition.value = entry.position ?? 0;
-    if (elements.entryDepth) elements.entryDepth.value = entry.depth ?? 4;
-    if (elements.entryRole) elements.entryRole.value = entry.role ?? 0;
-    if (elements.entryOutlet) elements.entryOutlet.value = entry.outletName || '';
-    if (elements.entryOrder) elements.entryOrder.value = entry.order ?? 100;
-    updatePositionRowVisibility();
+    set('insertionPosition', entry.position ?? 0);
+    set('insertionDepth', entry.depth ?? 4);
+    set('insertionRole', entry.role ?? 0);
+    set('outletName', entry.outletName || '');
+    set('orderNumber', entry.order ?? 100);
+    updatePositionRowVisibility(uid);
 
-    // Probability & timing
-    if (elements.entryProbability) elements.entryProbability.value = entry.probability ?? 100;
-    if (elements.entrySticky) elements.entrySticky.value = entry.sticky ?? 0;
-    if (elements.entryCooldown) elements.entryCooldown.value = entry.cooldown ?? 0;
-    if (elements.entryDelay) elements.entryDelay.value = entry.delay ?? 0;
+    // Timing
+    set('probability', entry.probability ?? 100);
+    set('sticky', entry.sticky ?? 0);
+    set('cooldown', entry.cooldown ?? 0);
+    set('delay', entry.delay ?? 0);
 
     // Recursion
-    if (elements.entryExcludeRecursion) elements.entryExcludeRecursion.checked = !!entry.excludeRecursion;
-    if (elements.entryPreventRecursion) elements.entryPreventRecursion.checked = !!entry.preventRecursion;
-    if (elements.entryDelayUntilRecursion) elements.entryDelayUntilRecursion.checked = !!entry.delayUntilRecursion;
-    if (elements.entryIgnoreBudget) elements.entryIgnoreBudget.checked = !!entry.ignoreBudget;
+    check('excludeRecursion', entry.excludeRecursion);
+    check('preventRecursion', entry.preventRecursion);
+    check('delayUntilRecursion', entry.delayUntilRecursion);
+    check('ignoreBudget', entry.ignoreBudget);
 
     // Group
-    if (elements.entryGroup) elements.entryGroup.value = entry.group || '';
-    if (elements.entryGroupWeight) elements.entryGroupWeight.value = entry.groupWeight ?? 100;
-    if (elements.entryGroupOverride) elements.entryGroupOverride.checked = !!entry.groupOverride;
+    set('inclusionGroup', entry.group || '');
+    set('groupWeight', entry.groupWeight ?? 100);
+    check('groupOverride', entry.groupOverride);
 
     // Overrides
-    if (elements.entryScanDepth) elements.entryScanDepth.value = entry.scanDepth ?? '';
-    if (elements.entryCaseSensitive) {
-        elements.entryCaseSensitive.value = entry.caseSensitive === null || entry.caseSensitive === undefined
-            ? '' : String(entry.caseSensitive);
-    }
-    if (elements.entryMatchWholeWords) {
-        elements.entryMatchWholeWords.value = entry.matchWholeWords === null || entry.matchWholeWords === undefined
-            ? '' : String(entry.matchWholeWords);
-    }
-    if (elements.entryGroupScoring) {
-        elements.entryGroupScoring.value = entry.useGroupScoring === null || entry.useGroupScoring === undefined
-            ? '' : String(entry.useGroupScoring);
-    }
-    if (elements.entryAutomationId) elements.entryAutomationId.value = entry.automationId || '';
+    set('scanDepthOverride', entry.scanDepth ?? '');
+    set('caseSensitiveOverride',
+        entry.caseSensitive === null || entry.caseSensitive === undefined
+            ? '' : String(entry.caseSensitive));
+    set('wholeWordOverride',
+        entry.matchWholeWords === null || entry.matchWholeWords === undefined
+            ? '' : String(entry.matchWholeWords));
+    set('groupScoringOverride',
+        entry.useGroupScoring === null || entry.useGroupScoring === undefined
+            ? '' : String(entry.useGroupScoring));
+    set('automationId', entry.automationId || '');
 
     // Character filter
     const cf = entry.characterFilter || { isExclude: false, names: [], tags: [] };
-    if (elements.characterFilterExclude) elements.characterFilterExclude.checked = !!cf.isExclude;
-    if (elements.characterFilterNames) elements.characterFilterNames.value = (cf.names || []).join(', ');
-    if (elements.characterFilterTags) elements.characterFilterTags.value = (cf.tags || []).join(', ');
+    check('characterFilterExclude', cf.isExclude);
+    set('characterFilterNames', (cf.names || []).join(', '));
+    set('characterFilterTags', (cf.tags || []).join(', '));
 
     // Triggers
-    if (elements.triggerCheckboxes) {
-        const triggers = entry.triggers || [];
-        elements.triggerCheckboxes.forEach(cb => {
-            cb.checked = triggers.includes(cb.dataset.trigger);
-        });
-    }
+    const triggers = entry.triggers || [];
+    triggerCheckboxes(uid).forEach(cb => {
+        cb.checked = triggers.includes(cb.dataset.trigger);
+    });
 
     // Matching sources
-    if (elements.matchPersonaDescription) elements.matchPersonaDescription.checked = !!entry.matchPersonaDescription;
-    if (elements.matchCharacterDescription) elements.matchCharacterDescription.checked = !!entry.matchCharacterDescription;
-    if (elements.matchCharacterPersonality) elements.matchCharacterPersonality.checked = !!entry.matchCharacterPersonality;
-    if (elements.matchScenario) elements.matchScenario.checked = !!entry.matchScenario;
-    if (elements.matchCharacterDepthPrompt) elements.matchCharacterDepthPrompt.checked = !!entry.matchCharacterDepthPrompt;
-    if (elements.matchCreatorNotes) elements.matchCreatorNotes.checked = !!entry.matchCreatorNotes;
+    check('matchPersonaDescription', entry.matchPersonaDescription);
+    check('matchCharacterDescription', entry.matchCharacterDescription);
+    check('matchCharacterPersonality', entry.matchCharacterPersonality);
+    check('matchScenario', entry.matchScenario);
+    check('matchCharacterDepthPrompt', entry.matchCharacterDepthPrompt);
+    check('matchCreatorNotes', entry.matchCreatorNotes);
 }
 
 function parseNullableBool(value) {
@@ -355,80 +376,181 @@ function splitCsv(value) {
         .filter(Boolean);
 }
 
-export function getFormData() {
+/**
+ * Read values from the per-uid form into a partial entry object.
+ */
+export function getFormData(uid) {
+    if (uid === undefined || uid === null) return {};
+    const form = document.getElementById(`entryForm_${uid}`);
+    if (!form) return {};
+    const v = base => {
+        const el = field(base, uid);
+        return el ? el.value : undefined;
+    };
+    const c = base => {
+        const el = field(base, uid);
+        return el ? !!el.checked : false;
+    };
+
     const data = {};
 
     // Basic
-    if (elements.entryComment) data.comment = elements.entryComment.value;
-    if (elements.entryKeys) data.key = splitCsv(elements.entryKeys.value);
-    if (elements.entrySecondaryKeys) data.keysecondary = splitCsv(elements.entrySecondaryKeys.value);
-    if (elements.selectiveLogic) data.selectiveLogic = parseInt(elements.selectiveLogic.value, 10) || 0;
-    if (elements.entryContent) data.content = elements.entryContent.value;
+    if (v('entryName') !== undefined) data.comment = v('entryName');
+    if (v('primaryKeywords') !== undefined) data.key = splitCsv(v('primaryKeywords'));
+    if (v('secondaryKeywords') !== undefined) data.keysecondary = splitCsv(v('secondaryKeywords'));
+    if (v('selectiveLogic') !== undefined) data.selectiveLogic = parseInt(v('selectiveLogic'), 10) || 0;
+    if (v('entryContent') !== undefined) data.content = v('entryContent');
 
     // Activation
-    const activation = readRadioGroup(elements.activationRadios, 'keyword');
-    applyActivationType(data, activation);
+    applyActivationType(data, readRadioGroup(activationRadios(uid), 'keyword'));
 
     // Position
-    if (elements.entryPosition) data.position = parseInt(elements.entryPosition.value, 10) || 0;
-    if (elements.entryDepth) data.depth = parseInt(elements.entryDepth.value, 10) || 0;
-    if (elements.entryRole) data.role = parseInt(elements.entryRole.value, 10) || 0;
-    if (elements.entryOutlet) data.outletName = elements.entryOutlet.value;
-    if (elements.entryOrder) data.order = parseInt(elements.entryOrder.value, 10) || 0;
+    if (v('insertionPosition') !== undefined) data.position = parseInt(v('insertionPosition'), 10) || 0;
+    if (v('insertionDepth') !== undefined) data.depth = parseInt(v('insertionDepth'), 10) || 0;
+    if (v('insertionRole') !== undefined) data.role = parseInt(v('insertionRole'), 10) || 0;
+    if (v('outletName') !== undefined) data.outletName = v('outletName');
+    if (v('orderNumber') !== undefined) data.order = parseInt(v('orderNumber'), 10) || 0;
 
-    // Probability & timing
-    if (elements.entryProbability) data.probability = parseInt(elements.entryProbability.value, 10) || 0;
-    if (elements.entrySticky) data.sticky = parseInt(elements.entrySticky.value, 10) || 0;
-    if (elements.entryCooldown) data.cooldown = parseInt(elements.entryCooldown.value, 10) || 0;
-    if (elements.entryDelay) data.delay = parseInt(elements.entryDelay.value, 10) || 0;
+    // Timing
+    if (v('probability') !== undefined) data.probability = parseInt(v('probability'), 10) || 0;
+    if (v('sticky') !== undefined) data.sticky = parseInt(v('sticky'), 10) || 0;
+    if (v('cooldown') !== undefined) data.cooldown = parseInt(v('cooldown'), 10) || 0;
+    if (v('delay') !== undefined) data.delay = parseInt(v('delay'), 10) || 0;
 
     // Recursion
-    if (elements.entryExcludeRecursion) data.excludeRecursion = elements.entryExcludeRecursion.checked;
-    if (elements.entryPreventRecursion) data.preventRecursion = elements.entryPreventRecursion.checked;
-    if (elements.entryDelayUntilRecursion) data.delayUntilRecursion = elements.entryDelayUntilRecursion.checked;
-    if (elements.entryIgnoreBudget) data.ignoreBudget = elements.entryIgnoreBudget.checked;
+    data.excludeRecursion = c('excludeRecursion');
+    data.preventRecursion = c('preventRecursion');
+    data.delayUntilRecursion = c('delayUntilRecursion');
+    data.ignoreBudget = c('ignoreBudget');
 
     // Group
-    if (elements.entryGroup) data.group = elements.entryGroup.value;
-    if (elements.entryGroupWeight) data.groupWeight = parseInt(elements.entryGroupWeight.value, 10) || 0;
-    if (elements.entryGroupOverride) data.groupOverride = elements.entryGroupOverride.checked;
+    if (v('inclusionGroup') !== undefined) data.group = v('inclusionGroup');
+    if (v('groupWeight') !== undefined) data.groupWeight = parseInt(v('groupWeight'), 10) || 0;
+    data.groupOverride = c('groupOverride');
 
     // Overrides
-    if (elements.entryScanDepth) data.scanDepth = parseNullableInt(elements.entryScanDepth.value);
-    if (elements.entryCaseSensitive) data.caseSensitive = parseNullableBool(elements.entryCaseSensitive.value);
-    if (elements.entryMatchWholeWords) data.matchWholeWords = parseNullableBool(elements.entryMatchWholeWords.value);
-    if (elements.entryGroupScoring) data.useGroupScoring = parseNullableBool(elements.entryGroupScoring.value);
-    if (elements.entryAutomationId) data.automationId = elements.entryAutomationId.value;
+    if (v('scanDepthOverride') !== undefined) data.scanDepth = parseNullableInt(v('scanDepthOverride'));
+    if (v('caseSensitiveOverride') !== undefined) data.caseSensitive = parseNullableBool(v('caseSensitiveOverride'));
+    if (v('wholeWordOverride') !== undefined) data.matchWholeWords = parseNullableBool(v('wholeWordOverride'));
+    if (v('groupScoringOverride') !== undefined) data.useGroupScoring = parseNullableBool(v('groupScoringOverride'));
+    if (v('automationId') !== undefined) data.automationId = v('automationId');
 
     // Character filter
     data.characterFilter = {
-        isExclude: elements.characterFilterExclude ? elements.characterFilterExclude.checked : false,
-        names: elements.characterFilterNames ? splitCsv(elements.characterFilterNames.value) : [],
-        tags: elements.characterFilterTags ? splitCsv(elements.characterFilterTags.value) : []
+        isExclude: c('characterFilterExclude'),
+        names: splitCsv(v('characterFilterNames') || ''),
+        tags: splitCsv(v('characterFilterTags') || '')
     };
 
     // Triggers
-    if (elements.triggerCheckboxes) {
-        data.triggers = [];
-        elements.triggerCheckboxes.forEach(cb => {
-            if (cb.checked) data.triggers.push(cb.dataset.trigger);
-        });
-    }
+    data.triggers = [];
+    triggerCheckboxes(uid).forEach(cb => {
+        if (cb.checked) data.triggers.push(cb.dataset.trigger);
+    });
 
     // Matching sources
-    if (elements.matchPersonaDescription) data.matchPersonaDescription = elements.matchPersonaDescription.checked;
-    if (elements.matchCharacterDescription) data.matchCharacterDescription = elements.matchCharacterDescription.checked;
-    if (elements.matchCharacterPersonality) data.matchCharacterPersonality = elements.matchCharacterPersonality.checked;
-    if (elements.matchScenario) data.matchScenario = elements.matchScenario.checked;
-    if (elements.matchCharacterDepthPrompt) data.matchCharacterDepthPrompt = elements.matchCharacterDepthPrompt.checked;
-    if (elements.matchCreatorNotes) data.matchCreatorNotes = elements.matchCreatorNotes.checked;
+    data.matchPersonaDescription = c('matchPersonaDescription');
+    data.matchCharacterDescription = c('matchCharacterDescription');
+    data.matchCharacterPersonality = c('matchCharacterPersonality');
+    data.matchScenario = c('matchScenario');
+    data.matchCharacterDepthPrompt = c('matchCharacterDepthPrompt');
+    data.matchCreatorNotes = c('matchCreatorNotes');
 
     return data;
 }
 
 export function clearForm() {
-    if (elements.entryForm) {
-        elements.entryForm.reset();
+    if (elements.entryEditor) elements.entryEditor.innerHTML = '';
+}
+
+/* ---------- Editor: multiple-form rendering ---------- */
+
+/**
+ * Sync the editor container's forms with state.openTabs:
+ *   - Add a form for any new tab.
+ *   - Remove forms for any tab that's been closed.
+ *   - Mark the current entry's form as active.
+ */
+export function renderEditorForms() {
+    const container = elements.entryEditor;
+    if (!container) return;
+
+    const tabUids = new Set(state.openTabs.map(t => t.uid));
+
+    // Drop forms whose tab is gone
+    container.querySelectorAll('.entry-form').forEach(formEl => {
+        const uid = parseInt(formEl.dataset.uid, 10);
+        if (!tabUids.has(uid)) formEl.remove();
+    });
+
+    // Add forms for any new tabs (preserve open-tabs order)
+    state.openTabs.forEach(tab => {
+        if (!document.getElementById(`entryForm_${tab.uid}`)) {
+            container.insertAdjacentHTML('beforeend', buildEntryFormHtml(tab.uid));
+            const entry = state.lorebookData?.entries[tab.uid];
+            if (entry) populateForm(tab.uid, entry);
+            attachFormListeners(tab.uid);
+        }
+    });
+
+    // Active class
+    container.querySelectorAll('.entry-form').forEach(formEl => {
+        const uid = parseInt(formEl.dataset.uid, 10);
+        formEl.classList.toggle('active', uid === state.currentEntryUid);
+    });
+
+    applyEditorView();
+}
+
+/**
+ * Wire form events (auto-save, position-row toggle) for one entry form.
+ */
+function attachFormListeners(uid) {
+    const form = document.getElementById(`entryForm_${uid}`);
+    if (!form) return;
+
+    const positionSelect = field('insertionPosition', uid);
+    if (positionSelect) {
+        positionSelect.addEventListener('change', () => updatePositionRowVisibility(uid));
     }
-    updatePositionRowVisibility();
+
+    const autoSave = debounce(() => {
+        if (!state.lorebookData?.entries) return;
+        const entry = state.lorebookData.entries[uid];
+        if (!entry) return;
+        Object.assign(entry, getFormData(uid));
+        markEntryUnsaved(uid);
+        // Re-render sidebar so the new name / status / pills update
+        import('./sidebar.js').then(({ renderSidebar }) => renderSidebar());
+        // Refresh the tab title
+        import('./tabs.js').then(({ updateTabTitle, renderTabs }) => {
+            updateTabTitle(uid, entry.comment || `Entry ${uid}`);
+            renderTabs();
+        });
+    }, 500);
+
+    form.addEventListener('input', autoSave);
+    form.addEventListener('change', autoSave);
+}
+
+/**
+ * Apply data-view to the editor based on settings.sideBySide.
+ * On single view, only the active form is shown.
+ */
+export function applyEditorView() {
+    const container = elements.entryEditor;
+    if (!container) return;
+    const view = state.settings.sideBySide ? 'side-by-side' : 'single';
+    container.setAttribute('data-view', view);
+    if (elements.sideBySideToggle) {
+        elements.sideBySideToggle.classList.toggle('active', state.settings.sideBySide);
+        elements.sideBySideToggle.title = state.settings.sideBySide
+            ? 'Switch to single view'
+            : 'Switch to side-by-side view';
+    }
+}
+
+export function toggleEditorView() {
+    state.settings.sideBySide = !state.settings.sideBySide;
+    applyEditorView();
 }

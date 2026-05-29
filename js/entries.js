@@ -6,7 +6,15 @@
 import { state, markEntryUnsaved, scheduleSave } from './state.js';
 import { elements } from './elements.js';
 import { createDefaultEntry, getStatusIcon } from './utils.js';
-import { populateForm, getFormData, clearForm, showToast, updateSidebarHeader, showEditor } from './ui.js';
+import {
+    populateForm,
+    getFormData,
+    clearForm,
+    showToast,
+    updateSidebarHeader,
+    showEditor,
+    renderEditorForms
+} from './ui.js';
 import { addTab, switchToTab, closeTab, updateTabTitle, renderTabs } from './tabs.js';
 import { renderSidebar } from './sidebar.js';
 
@@ -82,10 +90,8 @@ export function openEntry(uid) {
     // Add new tab (also sets currentEntryUid and calls showEditor)
     addTab(uid, entry.comment || `Entry ${uid}`);
 
-    // Populate form
-    populateForm(entry);
-
-    // Make sure editor area is visible
+    // Build/refresh the per-uid form and reveal the editor
+    renderEditorForms();
     showEditor();
 
     // Update sidebar selection / sidebar (to mark .active)
@@ -99,13 +105,14 @@ export function openEntry(uid) {
 export function saveCurrentEntry() {
     if (state.currentEntryUid === null) return;
 
-    const entry = state.lorebookData?.entries[state.currentEntryUid];
+    const uid = state.currentEntryUid;
+    const entry = state.lorebookData?.entries[uid];
     if (!entry) return;
 
-    const formData = getFormData();
+    const formData = getFormData(uid);
     Object.assign(entry, formData);
 
-    state.unsavedEntries.delete(state.currentEntryUid);
+    state.unsavedEntries.delete(uid);
     state.hasUnsavedChanges = state.unsavedEntries.size > 0;
     scheduleSave();
 
@@ -267,9 +274,7 @@ export function toggleEntryEnabled(uid) {
     markEntryUnsaved(uid);
 
     // Update form if this is the current entry
-    if (state.currentEntryUid === uid) {
-        populateForm(entry);
-    }
+    populateForm(uid, entry);
 
     renderSidebar();
 }

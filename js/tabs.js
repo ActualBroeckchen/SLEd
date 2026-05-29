@@ -6,7 +6,7 @@
 import { state, scheduleSave } from './state.js';
 import { elements } from './elements.js';
 import { escapeHtml } from './utils.js';
-import { populateForm, clearForm, showWelcome, showEditor } from './ui.js';
+import { populateForm, clearForm, showWelcome, showEditor, renderEditorForms } from './ui.js';
 
 /**
  * Render all tabs
@@ -65,6 +65,7 @@ export function addTab(uid, title) {
     scheduleSave();
 
     renderTabs();
+    renderEditorForms();
     showEditor();
 }
 
@@ -78,22 +79,21 @@ export function switchToTab(uid) {
 
     state.currentEntryUid = uid;
     scheduleSave();
-    
-    // Load entry data
-    const entry = state.lorebookData?.entries[uid];
-    if (entry) {
-        populateForm(entry);
-    }
-    
+
     renderTabs();
-    
-    // Update sidebar selection
-    document.querySelectorAll('.entry-item.selected').forEach(el => {
-        el.classList.remove('selected');
+    renderEditorForms();
+
+    // In side-by-side mode, scroll the active form into view
+    const form = document.getElementById(`entryForm_${uid}`);
+    if (form) form.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+
+    // Update sidebar selection to match the active entry
+    document.querySelectorAll('.entry-item.active').forEach(el => {
+        el.classList.remove('active');
     });
     const item = document.querySelector(`.entry-item[data-uid="${uid}"]`);
     if (item) {
-        item.classList.add('selected');
+        item.classList.add('active');
     }
 }
 
@@ -121,8 +121,9 @@ export function closeTab(uid) {
             showWelcome();
         }
     }
-    
+
     renderTabs();
+    renderEditorForms();
 }
 
 /**

@@ -19,6 +19,7 @@ export const state = {
         dyslexiaFont: false,
         editorFont: 'mono',
         sidebarZoom: 'normal',
+        sideBySide: false,
         // Legacy quick-flags (kept for back-compat with older exports)
         exportTitles: true,
         exportKeywords: true,
