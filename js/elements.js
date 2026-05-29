@@ -1,6 +1,10 @@
 /**
  * SLEd - Simple Lorebook Editor
  * DOM Elements Module
+ *
+ * The entry form was moved out of index.html into js/form-template.js so
+ * we can render multiple forms side-by-side. This module only caches
+ * elements that exist statically in index.html.
  */
 
 export const elements = {
@@ -32,11 +36,11 @@ export const elements = {
     // Editor
     tabsContainer: null,
     tabs: null,
+    sideBySideToggle: null,
     editorContent: null,
     welcomeScreen: null,
     welcomeLogo: null,
-    entryEditor: null,
-    entryForm: null,
+    entryEditor: null, // container for per-uid entry forms
 
     // Welcome buttons
     importBtn: null,
@@ -86,7 +90,7 @@ export const elements = {
     // Toast
     toastContainer: null,
 
-    // Settings - theme toggle buttons
+    // Settings
     themeLightBtn: null,
     themeDarkBtn: null,
     dyslexiaFont: null,
@@ -102,69 +106,7 @@ export const elements = {
     mergeSelectAll: null,
     mergeSelectNone: null,
     mergeConfirm: null,
-    mergeList: null,
-
-    // Form fields - Basic
-    entryComment: null,
-    entryKeys: null,
-    entrySecondaryKeys: null,
-    selectiveLogic: null,
-    entryContent: null,
-
-    // Activation radio group
-    activationRadios: null,
-
-    // Form fields - Position
-    entryPosition: null,
-    entryDepth: null,
-    entryRole: null,
-    entryOutlet: null,
-    entryOrder: null,
-    depthRow: null,
-    outletRow: null,
-
-    // Form fields - Probability & Timing
-    entryProbability: null,
-    entrySticky: null,
-    entryCooldown: null,
-    entryDelay: null,
-
-    // Form fields - Group
-    entryGroup: null,
-    entryGroupWeight: null,
-    entryGroupOverride: null,
-    entryGroupScoring: null,
-
-    // Form fields - Advanced
-    entryScanDepth: null,
-    entryCaseSensitive: null,
-    entryMatchWholeWords: null,
-    entryIgnoreBudget: null,
-    entryExcludeRecursion: null,
-    entryPreventRecursion: null,
-    entryDelayUntilRecursion: null,
-    entryAutomationId: null,
-    advancedSection: null,
-
-    // Character filter
-    characterFilterExclude: null,
-    characterFilterNames: null,
-    characterFilterTags: null,
-
-    // Triggers
-    triggerCheckboxes: null,
-
-    // Matching sources
-    matchPersonaDescription: null,
-    matchCharacterDescription: null,
-    matchCharacterPersonality: null,
-    matchScenario: null,
-    matchCharacterDepthPrompt: null,
-    matchCreatorNotes: null,
-
-    // Sections
-    keywordsSection: null,
-    secondaryKeywordsSection: null
+    mergeList: null
 };
 
 export function initElements() {
@@ -196,11 +138,11 @@ export function initElements() {
     // Editor
     elements.tabsContainer = document.getElementById('tabsContainer');
     elements.tabs = document.getElementById('tabs');
+    elements.sideBySideToggle = document.getElementById('sideBySideToggle');
     elements.editorContent = document.getElementById('editorContent');
     elements.welcomeScreen = document.getElementById('welcomeScreen');
     elements.welcomeLogo = document.getElementById('welcomeLogo');
     elements.entryEditor = document.getElementById('entryEditor');
-    elements.entryForm = document.getElementById('entryForm');
 
     // Welcome buttons
     elements.importBtn = document.getElementById('importBtn');
@@ -251,12 +193,12 @@ export function initElements() {
     elements.toastContainer = document.getElementById('toastContainer');
 
     // Settings
-    elements.themeLightBtn = document.getElementById('themeLightBtn');
-    elements.themeDarkBtn = document.getElementById('themeDarkBtn');
     elements.dyslexiaFont = document.getElementById('dyslexiaFont');
     elements.exportTitles = document.getElementById('exportTitles');
     elements.exportKeywords = document.getElementById('exportKeywords');
     elements.exportComments = document.getElementById('exportComments');
+    elements.themeLightBtn = document.getElementById('themeLightBtn');
+    elements.themeDarkBtn = document.getElementById('themeDarkBtn');
 
     // Export modal buttons
     elements.exportJsonBtn = document.getElementById('exportJson');
@@ -267,66 +209,4 @@ export function initElements() {
     elements.mergeSelectNone = document.getElementById('mergeSelectNone');
     elements.mergeConfirm = document.getElementById('mergeConfirm');
     elements.mergeList = document.getElementById('mergeList');
-
-    // Form fields - Basic
-    elements.entryComment = document.getElementById('entryName');
-    elements.entryKeys = document.getElementById('primaryKeywords');
-    elements.entrySecondaryKeys = document.getElementById('secondaryKeywords');
-    elements.selectiveLogic = document.getElementById('selectiveLogic');
-    elements.entryContent = document.getElementById('entryContent');
-
-    // Activation radio group
-    elements.activationRadios = document.querySelectorAll('input[name="activationType"]');
-
-    // Form fields - Position
-    elements.entryPosition = document.getElementById('insertionPosition');
-    elements.entryDepth = document.getElementById('insertionDepth');
-    elements.entryRole = document.getElementById('insertionRole');
-    elements.entryOutlet = document.getElementById('outletName');
-    elements.entryOrder = document.getElementById('orderNumber');
-    elements.depthRow = document.getElementById('depthRow');
-    elements.outletRow = document.getElementById('outletRow');
-
-    // Form fields - Probability & Timing
-    elements.entryProbability = document.getElementById('probability');
-    elements.entrySticky = document.getElementById('sticky');
-    elements.entryCooldown = document.getElementById('cooldown');
-    elements.entryDelay = document.getElementById('delay');
-
-    // Form fields - Group
-    elements.entryGroup = document.getElementById('inclusionGroup');
-    elements.entryGroupWeight = document.getElementById('groupWeight');
-    elements.entryGroupOverride = document.getElementById('groupOverride');
-    elements.entryGroupScoring = document.getElementById('groupScoringOverride');
-
-    // Form fields - Advanced
-    elements.entryScanDepth = document.getElementById('scanDepthOverride');
-    elements.entryCaseSensitive = document.getElementById('caseSensitiveOverride');
-    elements.entryMatchWholeWords = document.getElementById('wholeWordOverride');
-    elements.entryIgnoreBudget = document.getElementById('ignoreBudget');
-    elements.entryExcludeRecursion = document.getElementById('excludeRecursion');
-    elements.entryPreventRecursion = document.getElementById('preventRecursion');
-    elements.entryDelayUntilRecursion = document.getElementById('delayUntilRecursion');
-    elements.entryAutomationId = document.getElementById('automationId');
-    elements.advancedSection = document.getElementById('advancedSection');
-
-    // Character filter
-    elements.characterFilterExclude = document.getElementById('characterFilterExclude');
-    elements.characterFilterNames = document.getElementById('characterFilterNames');
-    elements.characterFilterTags = document.getElementById('characterFilterTags');
-
-    // Triggers
-    elements.triggerCheckboxes = document.querySelectorAll('input[data-trigger]');
-
-    // Matching sources
-    elements.matchPersonaDescription = document.getElementById('matchPersonaDescription');
-    elements.matchCharacterDescription = document.getElementById('matchCharacterDescription');
-    elements.matchCharacterPersonality = document.getElementById('matchCharacterPersonality');
-    elements.matchScenario = document.getElementById('matchScenario');
-    elements.matchCharacterDepthPrompt = document.getElementById('matchCharacterDepthPrompt');
-    elements.matchCreatorNotes = document.getElementById('matchCreatorNotes');
-
-    // Sections
-    elements.keywordsSection = document.getElementById('keywordsSection');
-    elements.secondaryKeywordsSection = document.getElementById('secondaryKeywordsSection');
 }

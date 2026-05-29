@@ -19,6 +19,8 @@ import {
     applyDyslexiaFont,
     applyEditorFont,
     applySidebarZoom,
+    applyEditorView,
+    toggleEditorView,
     toggleSidebar,
     closeSidebar,
     openModal,
@@ -26,10 +28,8 @@ import {
     closeAllModals,
     showToast,
     updateSidebarHeader,
-    updatePositionRowVisibility,
-    populateForm,
-    getFormData,
-    showEditor
+    showEditor,
+    renderEditorForms
 } from './ui.js';
 import {
     createEntry,
@@ -75,16 +75,10 @@ function init() {
     updateSidebarHeader();
     renderSidebar();
     if (restored) {
-        // Restore open tabs in the editor
         if (state.openTabs.length > 0) {
             renderTabs();
-            if (state.currentEntryUid !== null) {
-                const entry = state.lorebookData?.entries[state.currentEntryUid];
-                if (entry) {
-                    populateForm(entry);
-                    showEditor();
-                }
-            }
+            renderEditorForms();
+            if (state.currentEntryUid !== null) showEditor();
         }
         showToast('Previous session restored', 'info', 2000);
     }
@@ -102,7 +96,7 @@ function setupEventListeners() {
     setupSearchHandlers();
     setupExportHandlers();
     setupMergeHandlers();
-    setupFormHandlers();
+    setupEditorViewHandlers();
     setupKeyboardShortcuts();
     setupUnsavedWarning();
 }
@@ -418,34 +412,17 @@ function setupMergeHandlers() {
     }
 }
 
-/* ---------- Form auto-save & position toggles ---------- */
+/* ---------- Editor view (side-by-side) ---------- */
 
-function setupFormHandlers() {
-    if (elements.entryPosition) {
-        elements.entryPosition.addEventListener('change', updatePositionRowVisibility);
-    }
-
-    if (!elements.entryForm) return;
-
-    const autoSave = debounce(() => {
-        if (state.currentEntryUid === null || !state.lorebookData?.entries) return;
-        const entry = state.lorebookData.entries[state.currentEntryUid];
-        if (!entry) return;
-        const formData = getFormData();
-        Object.assign(entry, formData);
-        markEntryUnsaved(state.currentEntryUid);
-        // Reflect changes in the sidebar (title, status, badges, unsaved dot)
-        renderSidebar();
-        // Also bump the tab title in case the comment changed
-        import('./tabs.js').then(({ updateTabTitle, renderTabs }) => {
-            updateTabTitle(state.currentEntryUid, entry.comment || `Entry ${state.currentEntryUid}`);
-            renderTabs();
+function setupEditorViewHandlers() {
+    if (elements.sideBySideToggle) {
+        elements.sideBySideToggle.addEventListener('click', () => {
+            toggleEditorView();
+            saveSettings();
         });
-        persistSession();
-    }, 500);
-
-    elements.entryForm.addEventListener('input', autoSave);
-    elements.entryForm.addEventListener('change', autoSave);
+    }
+    // Persist sideBySide preference
+    applyEditorView();
 }
 
 /* ---------- Unsaved warning ---------- */

@@ -639,17 +639,37 @@ body {
     display: none;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .tabs-container.has-tabs {
-    display: block;
+    display: flex;
+    align-items: stretch;
 }
 
 .tabs {
     display: flex;
-    min-width: max-content;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabs-view-toggle {
+    flex-shrink: 0;
+    align-self: center;
+    margin-right: var(--space-xs);
+    display: none;
+}
+
+.tabs-view-toggle.active {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+@media (min-width: 768px) {
+    .tabs-container.has-tabs .tabs-view-toggle {
+        display: flex;
+    }
 }
 
 .tab {
@@ -1723,4 +1743,47 @@ kbd {
 
 #helpContent .shortcut kbd + kbd {
     margin-left: 2px;
+}
+
+/* ========================================
+   Multi-form editor (single + side-by-side)
+   ======================================== */
+
+.entry-form { display: none; }
+
+.entry-editor[data-view="single"] {
+    overflow-y: auto;
+}
+.entry-editor[data-view="single"] .entry-form.active {
+    display: block;
+    padding: var(--space-md);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.entry-editor[data-view="side-by-side"] {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: auto;
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+}
+
+.entry-editor[data-view="side-by-side"] .entry-form {
+    display: block;
+    flex: 0 0 min(540px, 90vw);
+    min-width: 0;
+    padding: var(--space-md);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    scroll-snap-align: start;
+}
+
+.entry-editor[data-view="side-by-side"] .entry-form.active {
+    background: var(--accent-light);
+}
+
+.entry-editor[data-view="side-by-side"] .entry-form:last-child {
+    border-right: none;
 }
