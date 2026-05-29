@@ -874,7 +874,10 @@ kbd {
 }
 
 .radio-pill {
-    display: block;
+    /* Equal share so Keyword / Constant / Disabled fit one row even on
+       narrow phones. Center label so short words don't look uneven. */
+    flex: 1 1 0;
+    min-width: 0;
     cursor: pointer;
 }
 
@@ -886,11 +889,12 @@ kbd {
 
 .radio-pill span {
     display: block;
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-sm) var(--space-sm);
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
     font-size: 0.875rem;
+    text-align: center;
     transition: all var(--transition-fast);
 }
 
@@ -1425,7 +1429,9 @@ kbd {
 
 .toast-container {
     position: fixed;
-    bottom: calc(var(--action-bar-height) + var(--space-md));
+    /* Mobile: top, below the header — keeps the action bar / form bottom
+       fully visible. Desktop override below switches to bottom-right. */
+    top: calc(var(--header-height) + var(--space-sm));
     left: var(--space-md);
     right: var(--space-md);
     display: flex;
@@ -1574,6 +1580,7 @@ kbd {
     }
     
     .toast-container {
+        top: auto;
         bottom: var(--space-xl);
         left: auto;
         right: var(--space-xl);
