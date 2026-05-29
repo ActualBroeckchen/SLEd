@@ -17,10 +17,20 @@ export const state = {
     settings: {
         theme: 'light',
         dyslexiaFont: false,
+        editorFont: 'mono',
         sidebarZoom: 'normal',
+        // Legacy quick-flags (kept for back-compat with older exports)
         exportTitles: true,
         exportKeywords: true,
-        exportComments: false
+        exportComments: false,
+        // Granular text-export prefs
+        txtIncludeTitles: true,
+        txtIncludeContent: true,
+        txtIncludePrimaryKeys: true,
+        txtIncludeSecondaryKeys: false,
+        txtIncludeStatus: false,
+        txtIncludeComments: false,
+        txtIncludeOrder: false
     }
 };
 

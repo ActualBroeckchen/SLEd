@@ -35,6 +35,9 @@
     --font-main: 'Lexend Deca', 'Noto Sans', system-ui, sans-serif;
     --font-display: 'Fredericka the Great', cursive;
     --font-dyslexic: 'OpenDyslexic', sans-serif;
+    --font-editor-mono: ui-monospace, 'JetBrains Mono', 'Cascadia Code', 'Source Code Pro', Consolas, monospace;
+    --font-editor-sans: 'Lexend Deca', 'Noto Sans', system-ui, sans-serif;
+    --font-editor-serif: ui-serif, Georgia, 'Times New Roman', serif;
     
     /* Layout */
     --header-height: 56px;
@@ -1588,4 +1591,136 @@ kbd {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* ========================================
+   Editor font cycling
+   ======================================== */
+
+[data-editor-font="mono"] #entryContent {
+    font-family: var(--font-editor-mono);
+}
+[data-editor-font="sans"] #entryContent {
+    font-family: var(--font-editor-sans);
+}
+[data-editor-font="serif"] #entryContent {
+    font-family: var(--font-editor-serif);
+}
+
+/* Hide header buttons that only make sense with more horizontal room */
+.header-tablet-only { display: none; }
+@media (min-width: 768px) {
+    .header-tablet-only { display: flex; }
+}
+
+/* ========================================
+   Sidebar polish: keyword pills + content preview
+   ======================================== */
+
+.entry-keyword-pill {
+    display: inline-block;
+    background: var(--bg-tertiary, var(--accent-light));
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    margin: 1px 2px 1px 0;
+    white-space: nowrap;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.entry-keyword-pill.more {
+    background: transparent;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-left: 0;
+}
+
+.entry-keywords {
+    /* Allow pills to wrap to a second line at the detailed zoom */
+    display: block;
+}
+
+.sidebar[data-zoom="normal"] .entry-keywords {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.6em;
+}
+
+.sidebar[data-zoom="detailed"] .entry-keywords {
+    white-space: normal;
+    max-height: none;
+}
+
+.entry-content-preview {
+    display: none;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+    margin-top: 4px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.sidebar[data-zoom="detailed"] .entry-content-preview {
+    display: -webkit-box;
+}
+
+.sidebar:not([data-zoom="detailed"]) .entry-content-preview {
+    display: none;
+}
+
+/* ========================================
+   Help modal content
+   ======================================== */
+
+#helpContent h3 {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-sm);
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+#helpContent h3:first-child {
+    margin-top: 0;
+}
+
+#helpContent ul {
+    padding-left: 1.25em;
+    margin-bottom: var(--space-md);
+}
+
+#helpContent li {
+    margin-bottom: 4px;
+    line-height: 1.5;
+}
+
+#helpContent .shortcuts-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+}
+
+@media (min-width: 600px) {
+    #helpContent .shortcuts-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+#helpContent .shortcut {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 0;
+    font-size: 0.85rem;
+}
+
+#helpContent .shortcut kbd + kbd {
+    margin-left: 2px;
 }

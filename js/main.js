@@ -17,6 +17,7 @@ import {
     applyAllSettings,
     applyTheme,
     applyDyslexiaFont,
+    applyEditorFont,
     applySidebarZoom,
     toggleSidebar,
     closeSidebar,
@@ -121,6 +122,26 @@ function setupHeaderHandlers() {
     if (elements.settingsBtn) {
         elements.settingsBtn.addEventListener('click', () => openModal('settingsModal'));
     }
+    if (elements.helpBtn) {
+        elements.helpBtn.addEventListener('click', () => openModal('helpModal'));
+    }
+    if (elements.themeToggle) {
+        elements.themeToggle.addEventListener('click', () => {
+            state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+            saveSettings();
+            applyTheme();
+        });
+    }
+    if (elements.editorFontToggle) {
+        elements.editorFontToggle.addEventListener('click', () => {
+            const order = ['mono', 'sans', 'serif'];
+            const cur = order.indexOf(state.settings.editorFont || 'mono');
+            state.settings.editorFont = order[(cur + 1) % order.length];
+            saveSettings();
+            applyEditorFont();
+            showToast(`Editor font: ${state.settings.editorFont}`, 'info', 1200);
+        });
+    }
     if (elements.lorebookName) {
         elements.lorebookName.addEventListener('input', (e) => {
             if (!state.lorebookData) return;
@@ -146,6 +167,7 @@ function setupSidebarHandlers() {
             state.settings.sidebarZoom = e.target.value;
             saveSettings();
             applySidebarZoom();
+            renderSidebar();
         });
     }
     if (elements.addEntryBtn) {
@@ -209,7 +231,10 @@ function setupModalCloseHandlers() {
         ['closeSettingsModal', 'settingsModal'],
         ['closeSettingsBtn', 'settingsModal'],
         ['closeExportModal', 'exportModal'],
-        ['closeMergeModal', 'mergeModal']
+        ['closeExportTextModal', 'exportTextModal'],
+        ['closeExportTextBtn', 'exportTextModal'],
+        ['closeMergeModal', 'mergeModal'],
+        ['closeHelpModal', 'helpModal']
     ];
     closeMap.forEach(([btnId, modalId]) => {
         const btn = document.getElementById(btnId);
@@ -285,10 +310,24 @@ function setupSearchHandlers() {
 
     if (searchInput) {
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) {
+                replaceAll();
+            } else if (e.shiftKey) {
+                replaceCurrent();
+            } else {
                 performSearch();
             }
+        });
+    }
+    const replaceInput = document.getElementById('replaceInput');
+    if (replaceInput) {
+        replaceInput.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) replaceAll();
+            else replaceCurrent();
         });
     }
 
@@ -308,8 +347,51 @@ function setupExportHandlers() {
     }
     if (elements.exportTxtBtn) {
         elements.exportTxtBtn.addEventListener('click', () => {
-            exportLorebookAsText();
+            // Hop into the granular text-export modal
             closeModal('exportModal');
+            // Pre-fill the filename from the current lorebook
+            if (elements.txtExportFilename && !elements.txtExportFilename.value) {
+                elements.txtExportFilename.value =
+                    state.lorebookData?.name
+                    || (state.fileName || 'lorebook').replace(/\.json$/i, '');
+            }
+            // Reflect saved prefs in the checkboxes
+            const map = [
+                ['txtIncludeTitles', 'txtIncludeTitles'],
+                ['txtIncludeContent', 'txtIncludeContent'],
+                ['txtIncludePrimaryKeys', 'txtIncludePrimaryKeys'],
+                ['txtIncludeSecondaryKeys', 'txtIncludeSecondaryKeys'],
+                ['txtIncludeStatus', 'txtIncludeStatus'],
+                ['txtIncludeComments', 'txtIncludeComments'],
+                ['txtIncludeOrder', 'txtIncludeOrder']
+            ];
+            map.forEach(([elKey, settingKey]) => {
+                const el = elements[elKey];
+                if (el) el.checked = !!state.settings[settingKey];
+            });
+            openModal('exportTextModal');
+        });
+    }
+    if (elements.performExportTextBtn) {
+        elements.performExportTextBtn.addEventListener('click', () => {
+            // Persist prefs from the modal
+            const map = [
+                ['txtIncludeTitles', 'txtIncludeTitles'],
+                ['txtIncludeContent', 'txtIncludeContent'],
+                ['txtIncludePrimaryKeys', 'txtIncludePrimaryKeys'],
+                ['txtIncludeSecondaryKeys', 'txtIncludeSecondaryKeys'],
+                ['txtIncludeStatus', 'txtIncludeStatus'],
+                ['txtIncludeComments', 'txtIncludeComments'],
+                ['txtIncludeOrder', 'txtIncludeOrder']
+            ];
+            map.forEach(([elKey, settingKey]) => {
+                const el = elements[elKey];
+                if (el) state.settings[settingKey] = el.checked;
+            });
+            saveSettings();
+            const filename = elements.txtExportFilename?.value || undefined;
+            exportLorebookAsText({ filename });
+            closeModal('exportTextModal');
         });
     }
 }
@@ -382,10 +464,41 @@ function setupUnsavedWarning() {
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
         const meta = e.ctrlKey || e.metaKey;
+        const targetTag = e.target?.tagName;
+        const isTyping = targetTag === 'INPUT' || targetTag === 'TEXTAREA' || e.target?.isContentEditable;
 
         if (e.key === 'Escape') {
             closeAllModals();
             closeSidebar();
+            return;
+        }
+
+        // F1 / Shift+? → help
+        if (!meta && !isTyping && (e.key === 'F1' || (e.shiftKey && e.key === '?'))) {
+            e.preventDefault();
+            openModal('helpModal');
+            return;
+        }
+
+        // Tab cycling within open tabs
+        if (meta && e.key === 'Tab') {
+            if (state.openTabs.length === 0) return;
+            e.preventDefault();
+            const order = state.openTabs.map(t => t.uid);
+            const cur = order.indexOf(state.currentEntryUid);
+            const delta = e.shiftKey ? -1 : 1;
+            const nextUid = order[(cur + delta + order.length) % order.length];
+            import('./tabs.js').then(({ switchToTab }) => switchToTab(nextUid));
+            return;
+        }
+
+        // Ctrl+Shift+A → toggle dyslexia font
+        if (meta && e.shiftKey && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            state.settings.dyslexiaFont = !state.settings.dyslexiaFont;
+            saveSettings();
+            applyDyslexiaFont();
+            showToast(state.settings.dyslexiaFont ? 'Dyslexia font on' : 'Dyslexia font off', 'info', 1200);
             return;
         }
 

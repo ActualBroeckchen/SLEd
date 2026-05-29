@@ -37,6 +37,15 @@
             <span class="entry-count" id="entryCount"></span>
         </div>
         <div class="header-right">
+            <button class="icon-btn header-tablet-only" id="editorFontToggle" aria-label="Cycle editor font" title="Editor font (monospace → sans-serif → serif)">
+                <span class="material-symbols-rounded">format_size</span>
+            </button>
+            <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle dark mode (Ctrl+D)">
+                <span class="material-symbols-rounded">dark_mode</span>
+            </button>
+            <button class="icon-btn" id="helpBtn" aria-label="Help" title="Help (F1)">
+                <span class="material-symbols-rounded">help</span>
+            </button>
             <button class="icon-btn" id="searchBtn" aria-label="Search & Replace">
                 <span class="material-symbols-rounded">search</span>
             </button>
@@ -585,8 +594,106 @@
                     <button class="export-option" id="exportTxt">
                         <span class="material-symbols-rounded">description</span>
                         <span class="export-option-title">Text (.txt)</span>
-                        <span class="export-option-desc">Human-readable format</span>
+                        <span class="export-option-desc">Pick fields to include</span>
                     </button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Text Export Options Modal -->
+    <dialog class="modal" id="exportTextModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export as Text (.txt)</h2>
+                <button class="icon-btn" id="closeExportTextModal" aria-label="Close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <fieldset class="form-fieldset">
+                    <legend>Include</legend>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeTitles" checked> <span>Entry titles</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeContent" checked> <span>Entry content</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludePrimaryKeys" checked> <span>Primary keywords</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeSecondaryKeys"> <span>Secondary keywords &amp; logic</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeStatus"> <span>Status (Constant / Disabled)</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeComments"> <span>Comments / notes</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="txtIncludeOrder"> <span>Order numbers</span></label>
+                    </div>
+                </fieldset>
+                <div class="form-row">
+                    <label class="form-label" for="txtExportFilename">Filename</label>
+                    <input type="text" id="txtExportFilename" class="form-input" placeholder="my-lorebook">
+                    <small class="form-hint">.txt extension is added automatically.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="closeExportTextBtn">Cancel</button>
+                <button class="btn primary" id="performExportTextBtn">Export Text</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Help Modal -->
+    <dialog class="modal" id="helpModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>SLEd — Help</h2>
+                <button class="icon-btn" id="closeHelpModal" aria-label="Close">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-body" id="helpContent">
+                <h3>Getting started</h3>
+                <ul>
+                    <li><strong>Import</strong> a SillyTavern lorebook JSON to load it.</li>
+                    <li><strong>New Lorebook</strong> creates a fresh one. The name you type in the header is used as the export filename.</li>
+                    <li>Your work is auto-saved in this browser — close the tab and come back to pick up where you left off.</li>
+                </ul>
+
+                <h3>Editing entries</h3>
+                <ul>
+                    <li>Click an entry in the sidebar to open it in a tab. Open more entries to compare; click a tab title to switch.</li>
+                    <li>The form auto-saves to memory as you type. The orange dot (●) marks entries that differ from the last imported/exported state.</li>
+                    <li>The save icon commits the current form and clears the dot for that entry. <strong>Export</strong> writes the lorebook back out to a file.</li>
+                </ul>
+
+                <h3>Sidebar quick actions</h3>
+                <ul>
+                    <li>Hover an entry (or tap on touch) to reveal: <em>insert above</em>, <em>insert below</em>, <em>duplicate</em>, <em>enable/disable</em>, <em>delete</em>.</li>
+                    <li>Use the number on the left of each entry to change its position; the rest of the list re-sequences automatically.</li>
+                    <li>Tick the checkbox on multiple entries to select them, then drag any selected entry to move the whole group at once.</li>
+                    <li>The zoom dropdown switches between Compact / Normal / Detailed views.</li>
+                </ul>
+
+                <h3>Merging</h3>
+                <ul>
+                    <li>Click the Merge action to pick another lorebook file. A modal lists its entries — tick the ones you want, then confirm. UIDs and orders are reassigned to avoid collisions.</li>
+                </ul>
+
+                <h3>Search &amp; Replace</h3>
+                <ul>
+                    <li>Open with the search icon or <kbd>Ctrl</kbd>+<kbd>H</kbd>. Choose case sensitivity, whole words, regex, and the scope (all fields / content / keywords / titles).</li>
+                    <li>In the search input: <kbd>Enter</kbd> finds all, <kbd>Shift</kbd>+<kbd>Enter</kbd> replaces the current match, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> replaces all.</li>
+                </ul>
+
+                <h3>Keyboard shortcuts</h3>
+                <div class="shortcuts-list">
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>I</kbd> <span>Import</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>E</kbd> <span>Export</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>M</kbd> <span>Merge</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>N</kbd> <span>New entry</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> <span>Save current entry</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>W</kbd> <span>Close current tab</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Tab</kbd> <span>Next tab</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd> <span>Previous tab</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>H</kbd> <span>Search &amp; Replace</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>D</kbd> <span>Toggle dark mode</span></div>
+                    <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> <span>Toggle dyslexia font</span></div>
+                    <div class="shortcut"><kbd>F1</kbd> / <kbd>?</kbd> <span>This help</span></div>
+                    <div class="shortcut"><kbd>Esc</kbd> <span>Close modals / sidebar</span></div>
                 </div>
             </div>
         </div>

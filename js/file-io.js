@@ -136,42 +136,82 @@ export function exportLorebook(pretty = true) {
 }
 
 /**
- * Export the current lorebook as plain text
+ * Export the current lorebook as plain text, honouring the granular
+ * txtInclude* prefs in state.settings.
+ * @param {Object} [opts] - Optional overrides for include flags + filename
  */
-export function exportLorebookAsText() {
+export function exportLorebookAsText(opts = {}) {
     if (!state.lorebookData) {
         showToast('No lorebook to export', 'error');
         return;
     }
 
+    const s = state.settings;
+    const cfg = {
+        titles: opts.titles ?? s.txtIncludeTitles ?? s.exportTitles ?? true,
+        content: opts.content ?? s.txtIncludeContent ?? true,
+        primaryKeys: opts.primaryKeys ?? s.txtIncludePrimaryKeys ?? s.exportKeywords ?? true,
+        secondaryKeys: opts.secondaryKeys ?? s.txtIncludeSecondaryKeys ?? false,
+        status: opts.status ?? s.txtIncludeStatus ?? false,
+        comments: opts.comments ?? s.txtIncludeComments ?? s.exportComments ?? false,
+        order: opts.order ?? s.txtIncludeOrder ?? false
+    };
+
+    const baseName = (opts.filename
+        || state.lorebookData.name
+        || (state.fileName || 'lorebook').replace(/\.json$/i, '')
+        || 'lorebook'
+    ).trim();
+
     try {
-        const { exportTitles, exportKeywords, exportComments } = state.settings;
         const entries = Object.values(state.lorebookData.entries || {})
             .sort((a, b) => (a.order || 0) - (b.order || 0));
 
+        const SELECTIVE_LOGIC = ['AND ANY', 'NOT ALL', 'NOT ANY', 'AND ALL'];
         const lines = [];
         lines.push(`# ${state.lorebookData.name || 'Lorebook'}`);
         lines.push('');
 
-        entries.forEach(entry => {
-            if (exportTitles && entry.comment) {
-                lines.push(`## ${entry.comment}`);
+        entries.forEach((entry, idx) => {
+            if (cfg.titles && entry.comment) {
+                const orderTag = cfg.order ? ` [#${entry.order ?? idx}]` : '';
+                lines.push(`## ${entry.comment}${orderTag}`);
+            } else if (cfg.order) {
+                lines.push(`## #${entry.order ?? idx}`);
             }
-            if (exportKeywords && (entry.key || []).length > 0) {
+
+            if (cfg.status) {
+                const status = [];
+                if (entry.constant) status.push('Constant');
+                if (entry.disable) status.push('Disabled');
+                if (status.length) lines.push(`Status: ${status.join(', ')}`);
+            }
+
+            if (cfg.primaryKeys && (entry.key || []).length > 0) {
                 lines.push(`Keywords: ${(entry.key || []).join(', ')}`);
             }
-            if (exportComments && entry.comment) {
+
+            if (cfg.secondaryKeys && (entry.keysecondary || []).length > 0) {
+                const logic = SELECTIVE_LOGIC[entry.selectiveLogic] || `Logic ${entry.selectiveLogic}`;
+                lines.push(`Secondary (${logic}): ${(entry.keysecondary || []).join(', ')}`);
+            }
+
+            if (cfg.comments && entry.comment) {
                 lines.push(`Comment: ${entry.comment}`);
             }
-            lines.push(entry.content || '');
+
+            if (cfg.content) {
+                lines.push(entry.content || '');
+            }
+
             lines.push('');
             lines.push('---');
             lines.push('');
         });
 
         const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const baseName = (state.fileName || 'lorebook').replace(/\.json$/i, '');
-        downloadFile(blob, `${baseName}.txt`);
+        const cleanName = baseName.replace(/\.txt$/i, '').replace(/[\\/:*?"<>|]/g, '_');
+        downloadFile(blob, `${cleanName || 'lorebook'}.txt`);
 
         showToast('Lorebook exported as text', 'success');
     } catch (error) {

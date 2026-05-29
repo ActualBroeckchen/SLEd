@@ -69,19 +69,28 @@ export function renderSidebar() {
         return;
     }
 
+    const zoom = state.settings.sidebarZoom || 'normal';
+    const maxPillKeys = zoom === 'detailed' ? 8 : 3;
+
     elements.entryList.innerHTML = entries.map(entry => {
         const isActive = entry.uid === state.currentEntryUid;
         const isSelected = state.selectedEntries.has(entry.uid);
         const isUnsaved = state.unsavedEntries.has(entry.uid);
         const statusIcon = getStatusIcon(entry);
-        const keys = (entry.key || []);
-        const keysPreview = keys.slice(0, 3).join(', ');
-        const hasMoreKeys = keys.length > 3;
+        const keys = entry.key || [];
         const order = entry.order ?? 0;
+
+        const visibleKeys = keys.slice(0, maxPillKeys);
+        const moreCount = Math.max(0, keys.length - maxPillKeys);
+        const pillsHtml = visibleKeys
+            .map(k => `<span class="entry-keyword-pill">${escapeHtml(k)}</span>`)
+            .join('') + (moreCount ? `<span class="entry-keyword-pill more">+${moreCount}</span>` : '');
 
         const badges = [];
         if (entry.constant) badges.push('<span class="status-badge status-constant">Constant</span>');
         if (entry.disable) badges.push('<span class="status-badge status-disabled">Disabled</span>');
+
+        const contentPreview = (entry.content || '').slice(0, 240);
 
         return `
             <div class="entry-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${isUnsaved ? 'unsaved' : ''}"
@@ -92,8 +101,9 @@ export function renderSidebar() {
                 <div class="entry-status">${statusIcon}</div>
                 <div class="entry-info">
                     <div class="entry-name">${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
-                    <div class="entry-keywords">${escapeHtml(keysPreview)}${hasMoreKeys ? '…' : ''}</div>
+                    ${pillsHtml ? `<div class="entry-keywords">${pillsHtml}</div>` : ''}
                     ${badges.length ? `<div class="entry-item-status">${badges.join('')}</div>` : ''}
+                    ${contentPreview ? `<div class="entry-content-preview">${escapeHtml(contentPreview)}</div>` : ''}
                 </div>
                 <div class="entry-actions">
                     <button class="icon-btn small entry-action-insert-above" title="Insert entry above" aria-label="Insert above">

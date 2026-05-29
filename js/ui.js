@@ -9,12 +9,30 @@ import { elements } from './elements.js';
 /* ---------- Theme & Font ---------- */
 
 export function applyTheme() {
-    document.documentElement.setAttribute('data-theme', state.settings.theme);
+    const theme = state.settings.theme;
+    document.documentElement.setAttribute('data-theme', theme);
     if (elements.themeLightBtn) {
-        elements.themeLightBtn.classList.toggle('active', state.settings.theme === 'light');
+        elements.themeLightBtn.classList.toggle('active', theme === 'light');
     }
     if (elements.themeDarkBtn) {
-        elements.themeDarkBtn.classList.toggle('active', state.settings.theme === 'dark');
+        elements.themeDarkBtn.classList.toggle('active', theme === 'dark');
+    }
+    if (elements.themeToggle) {
+        const icon = elements.themeToggle.querySelector('.material-symbols-rounded');
+        if (icon) icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+        elements.themeToggle.title = theme === 'dark'
+            ? 'Switch to light mode (Ctrl+D)'
+            : 'Switch to dark mode (Ctrl+D)';
+    }
+}
+
+export function applyEditorFont() {
+    const font = state.settings.editorFont || 'mono';
+    document.documentElement.setAttribute('data-editor-font', font);
+    if (elements.editorFontToggle) {
+        const labels = { mono: 'Monospace', sans: 'Sans-serif', serif: 'Serif' };
+        const next = { mono: 'sans', sans: 'serif', serif: 'mono' };
+        elements.editorFontToggle.title = `Editor font: ${labels[font]} (click for ${labels[next[font]]})`;
     }
 }
 
@@ -47,6 +65,7 @@ export function applyExportPrefs() {
 export function applyAllSettings() {
     applyTheme();
     applyDyslexiaFont();
+    applyEditorFont();
     applySidebarZoom();
     applyExportPrefs();
 }
