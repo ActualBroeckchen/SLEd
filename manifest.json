@@ -2,7 +2,7 @@
     "name": "SLEd - Simple Lorebook Editor",
     "short_name": "SLEd",
     "description": "A lightweight, browser-based editor for SillyTavern lorebook JSON files",
-    "version": "1.0.0",
+    "version": "4.0.0",
     "start_url": "./index.html",
     "display": "standalone",
     "orientation": "any",
@@ -12,15 +12,9 @@
     "icons": [
         {
             "src": "Sledlogo.png",
-            "sizes": "192x192",
+            "sizes": "192x192 512x512 1000x1000",
             "type": "image/png",
-            "purpose": "any maskable"
-        },
-        {
-            "src": "Sledlogo.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
         }
     ],
     "screenshots": [],

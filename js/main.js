@@ -79,7 +79,24 @@ function init() {
         showToast('Previous session restored', 'info', 2000);
     }
 
+    handleLaunchAction();
     console.log('SLEd initialized');
+}
+
+/**
+ * Honour the PWA shortcut URLs declared in manifest.json. The home-screen
+ * shortcuts launch ./index.html?action=import or ?action=new — open the
+ * matching flow and clean the URL so a refresh doesn't re-fire it.
+ */
+function handleLaunchAction() {
+    const action = new URLSearchParams(location.search).get('action');
+    if (!action) return;
+    history.replaceState({}, '', location.pathname);
+    if (action === 'import' && elements.fileInput) {
+        elements.fileInput.click();
+    } else if (action === 'new') {
+        createNewLorebook();
+    }
 }
 
 function setupEventListeners() {
