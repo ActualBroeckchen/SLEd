@@ -33,7 +33,9 @@ export function createNewLorebook() {
         scan_depth: 2,
         token_budget: 2048,
         recursive_scanning: false,
-        extensions: {},
+        extensions: {
+            sled: { autoSyncOrder: true, orderBaseline: 1, orderStep: 1 }
+        },
         entries: {}
     };
     

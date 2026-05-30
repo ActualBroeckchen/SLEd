@@ -65,8 +65,14 @@ export const elements = {
     fileInput: null,
     mergeFileInput: null,
 
+    // Sidebar
+    sidebarShowField: null,
+
     // Settings
     dyslexiaFont: null,
+    lbAutoSyncOrder: null,
+    lbOrderBaseline: null,
+    lbOrderStep: null,
 
     // Export modal buttons
     exportJsonBtn: null,
@@ -133,8 +139,14 @@ export function initElements() {
     elements.fileInput = document.getElementById('file-input');
     elements.mergeFileInput = document.getElementById('merge-file-input');
 
+    // Sidebar
+    elements.sidebarShowField = document.getElementById('sidebarShowField');
+
     // Settings
     elements.dyslexiaFont = document.getElementById('dyslexiaFont');
+    elements.lbAutoSyncOrder = document.getElementById('lbAutoSyncOrder');
+    elements.lbOrderBaseline = document.getElementById('lbOrderBaseline');
+    elements.lbOrderStep = document.getElementById('lbOrderStep');
 
     // Export modal buttons
     elements.exportJsonBtn = document.getElementById('exportJson');

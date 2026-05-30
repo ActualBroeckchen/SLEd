@@ -3,7 +3,12 @@
  * Provides offline caching and PWA functionality
  */
 
-const CACHE_NAME = 'sled-v3';
+const CACHE_NAME = 'sled-v4';
+
+// Precache only same-origin assets we control. Google Fonts CSS + font
+// files are cached opportunistically by the fetch handler on first use —
+// putting them here would risk the whole addAll rejecting if any one URL
+// hiccups, since addAll is atomic.
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -27,27 +32,26 @@ const ASSETS_TO_CACHE = [
     './js/sidebar.js',
     './js/search.js',
     './js/file-io.js',
-    // Google Fonts
-    'https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Lexend+Deca:wght@300;400;500;600&family=Noto+Sans:wght@300;400;500;600&family=OpenDyslexic:wght@400;700&display=swap',
-    'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0'
+    './js/form-template.js',
+    './js/script-import.js'
 ];
 
-// Install event - cache assets
+// Install event - precache local assets resiliently (one bad URL doesn't
+// take down the install; addAll would have rejected the whole batch).
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Caching app assets');
-                return cache.addAll(ASSETS_TO_CACHE);
-            })
-            .then(() => {
-                // Skip waiting to activate immediately
-                return self.skipWaiting();
-            })
-            .catch((error) => {
-                console.error('Failed to cache assets:', error);
-            })
-    );
+    event.waitUntil((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const results = await Promise.allSettled(
+            ASSETS_TO_CACHE.map((url) => cache.add(url))
+        );
+        const failed = results
+            .map((r, i) => (r.status === 'rejected' ? ASSETS_TO_CACHE[i] : null))
+            .filter(Boolean);
+        if (failed.length) {
+            console.warn('Service worker: some assets failed to precache:', failed);
+        }
+        await self.skipWaiting();
+    })());
 });
 
 // Activate event - clean up old caches
@@ -96,20 +100,29 @@ self.addEventListener('fetch', (event) => {
                 // Fetch from network
                 return fetch(request)
                     .then((networkResponse) => {
-                        // Check if valid response
-                        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                        // Cache successful same-origin (basic) AND cross-origin
+                        // (cors) responses. The old check excluded type !== 'basic'
+                        // which silently skipped Google Fonts CSS / font files
+                        // — they came back as 'cors' and never got cached, so
+                        // the app needed network to render fonts every visit.
+                        // Opaque responses (status 0, length 0) still excluded
+                        // because they can't be reused reliably.
+                        const cacheable = networkResponse
+                            && networkResponse.status === 200
+                            && (networkResponse.type === 'basic' || networkResponse.type === 'cors');
+                        if (!cacheable) {
                             return networkResponse;
                         }
-                        
+
                         // Clone the response for caching
                         const responseToCache = networkResponse.clone();
-                        
+
                         // Cache the fetched response (for fonts and other dynamic assets)
                         caches.open(CACHE_NAME)
                             .then((cache) => {
                                 cache.put(request, responseToCache);
                             });
-                        
+
                         return networkResponse;
                     })
                     .catch(() => {
