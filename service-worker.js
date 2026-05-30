@@ -3,7 +3,7 @@
  * Provides offline caching and PWA functionality
  */
 
-const CACHE_NAME = 'sled-v2';
+const CACHE_NAME = 'sled-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -13,6 +13,9 @@ const ASSETS_TO_CACHE = [
     './SledlogoLight.png',
     './SledlogoDark.png',
     './SledlogoMono.png',
+    // Self-hosted OpenDyslexic (not available on Google Fonts)
+    './fonts/opendyslexic-400-normal.woff2',
+    './fonts/opendyslexic-700-normal.woff2',
     // JavaScript modules
     './js/main.js',
     './js/state.js',
