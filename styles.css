@@ -72,9 +72,32 @@
     --info: #7a9aba;
 }
 
-/* Dyslexia font override */
+/* OpenDyslexic — self-hosted because the font isn't on Google Fonts.
+   Files come from @fontsource/opendyslexic v5.0.0 (OFL-1.1 licensed,
+   originally from github.com/antijingoist/opendyslexic). Service worker
+   caches them so the dyslexia toggle works offline too. */
+@font-face {
+    font-family: 'OpenDyslexic';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/opendyslexic-400-normal.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'OpenDyslexic';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/opendyslexic-700-normal.woff2') format('woff2');
+}
+
+/* Dyslexia font override — applies to body, display headings, and the
+   editor textareas so OpenDyslexic is used everywhere the user reads. */
 [data-dyslexia="true"] {
     --font-main: 'OpenDyslexic', sans-serif;
+    --font-display: 'OpenDyslexic', sans-serif;
+    --font-editor-sans: 'OpenDyslexic', sans-serif;
+    --font-editor-serif: 'OpenDyslexic', sans-serif;
 }
 
 /* ========================================
@@ -1589,6 +1612,7 @@ kbd {
     
     .welcome-actions {
         flex-direction: row;
+        justify-content: center;
         max-width: none;
     }
 }
