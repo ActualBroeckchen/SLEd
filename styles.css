@@ -1612,6 +1612,7 @@ kbd {
     
     .welcome-actions {
         flex-direction: row;
+        justify-content: center;
         max-width: none;
     }
 }
