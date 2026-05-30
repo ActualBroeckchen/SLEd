@@ -495,11 +495,12 @@ dialog {
     width: 3.5em;
     padding: 2px 4px;
     font-size: 0.75rem;
-    /* Subtle background + dotted border so users can see it's editable at
-       rest — fully transparent looked like a static label. Hover/focus
-       state below promotes it to a normal input look. */
-    background: var(--bg-tertiary);
-    border: 1px dotted var(--border);
+    /* At rest: visually quiet so it doesn't compete with the entry name
+       in Normal / Detailed modes. Compact mode overrides this to make
+       the field pop, since Compact is the sort-work view. Hover/focus
+       below promotes any mode to a proper input look. */
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: var(--border-radius);
     color: var(--text-secondary);
     text-align: center;
@@ -620,22 +621,36 @@ dialog {
     }
 }
 
-/* Compact zoom hides the action row, checkbox, order input, and badges */
-.sidebar[data-zoom="compact"] .entry-actions,
+/* Compact mode = sort-work view. We hide the bulk of the action row
+   and the checkbox, but expose the sort tools: an editable order input
+   (with a visible affordance since this is the mode where you reach
+   for it), and the up/down arrows. Drag is always available because
+   the whole .entry-item is draggable. */
+
 .sidebar[data-zoom="compact"] .entry-item-status,
 .sidebar[data-zoom="compact"] .entry-checkbox,
-.sidebar[data-zoom="compact"] .entry-order-input {
+.sidebar[data-zoom="compact"] .entry-action-insert-above,
+.sidebar[data-zoom="compact"] .entry-action-insert-below,
+.sidebar[data-zoom="compact"] .entry-action-copy,
+.sidebar[data-zoom="compact"] .entry-action-toggle,
+.sidebar[data-zoom="compact"] .entry-action-delete {
     display: none;
 }
 
-.sidebar[data-zoom="compact"] .entry-item {
-    grid-template-columns: auto 1fr;
-    grid-template-areas: "status info";
+.sidebar[data-zoom="compact"] .entry-order-input {
+    background: var(--bg-tertiary);
+    border: 1px dotted var(--border);
 }
 
-/* Sidebar zoom levels */
 .sidebar[data-zoom="compact"] .entry-item {
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas: "order status info actions";
     padding: var(--space-xs) var(--space-md);
+    gap: var(--space-sm);
+}
+
+.sidebar[data-zoom="compact"] .entry-actions {
+    gap: 0;
 }
 
 .sidebar[data-zoom="compact"] .entry-keywords,
