@@ -7,6 +7,10 @@
   A browser-based editor for SillyTavern lorebooks. No install, no account, no data leaves your device. Imports JSON, SillyTavern orchestrator scripts, and JanitorAI scripts.
 </p>
 
+<p align="center">
+  <strong>👉 <a href="https://actualbroeckchen.github.io/SLEd/">Try it live at actualbroeckchen.github.io/SLEd</a></strong>
+</p>
+
 ---
 
 ## What it does
@@ -20,13 +24,13 @@
 
 ## Try it
 
-- **Live demo** — open `index.html` in any modern browser (Chrome, Firefox, Safari, Edge)
-- **Install as a PWA** — visit the live URL on mobile or desktop, then add to home screen / install
+- **Use it in the browser** — [actualbroeckchen.github.io/SLEd](https://actualbroeckchen.github.io/SLEd/). Nothing to install. Your lorebooks stay in your browser.
+- **Install as a PWA** — visit the live URL on mobile or desktop, then **Add to Home Screen** (mobile) or click the install icon in the address bar (Chrome / Edge). Works fully offline after the first load.
 - **Run locally** — clone the repo and serve the root with anything that hands out static files:
 
 ```bash
-git clone https://github.com/actualbroeckchen/sled.git
-cd sled
+git clone https://github.com/actualbroeckchen/SLEd.git
+cd SLEd
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```

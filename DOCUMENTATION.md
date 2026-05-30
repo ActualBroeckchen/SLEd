@@ -1,6 +1,6 @@
 # SLEd — User Documentation
 
-The README covers what SLEd is. This file covers how to use it.
+The README covers what SLEd is. This file covers how to use it. If you just want to try the app, it's live at [actualbroeckchen.github.io/SLEd](https://actualbroeckchen.github.io/SLEd/) — no install required.
 
 ## Table of contents
 
