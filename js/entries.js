@@ -3,7 +3,7 @@
  * Entry Management Module
  */
 
-import { state, markEntryUnsaved, scheduleSave } from './state.js';
+import { state, markEntryUnsaved, scheduleSave, getLorebookConfig } from './state.js';
 import { createDefaultEntry } from './utils.js';
 import {
     populateForm,
@@ -22,11 +22,56 @@ import { renderSidebar } from './sidebar.js';
  */
 export function getNextUid() {
     if (!state.lorebookData?.entries) return 0;
-    
+
     const uids = Object.keys(state.lorebookData.entries).map(k => parseInt(k));
     if (uids.length === 0) return 0;
-    
+
     return Math.max(...uids) + 1;
+}
+
+/**
+ * If auto-sync is on, renumber every entry's UID and Order to match
+ * its sort position. UID = sortIdx (0-based, matches ST convention).
+ * Order = baseline + sortIdx * step. Updates open-tab UIDs and other
+ * state references via a rename map so the editor stays in sync.
+ *
+ * No-op when auto-sync is off. Always returns a rename map (possibly empty).
+ */
+export function reseqAll() {
+    if (!state.lorebookData?.entries) return new Map();
+    const cfg = getLorebookConfig();
+    const renames = new Map();
+    if (!cfg.autoSyncOrder) return renames;
+
+    const sorted = Object.values(state.lorebookData.entries)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const next = {};
+    sorted.forEach((entry, idx) => {
+        const newUid = idx;
+        const newOrder = (cfg.orderBaseline ?? 1) + idx * (cfg.orderStep ?? 1);
+        if (entry.uid !== newUid) renames.set(entry.uid, newUid);
+        entry.uid = newUid;
+        entry.displayIndex = newUid;
+        entry.order = newOrder;
+        next[newUid] = entry;
+    });
+    state.lorebookData.entries = next;
+
+    if (renames.size === 0) return renames;
+
+    // Remap state references that point at the renamed UIDs.
+    const remap = uid => (renames.has(uid) ? renames.get(uid) : uid);
+    state.openTabs = state.openTabs.map(t => ({ ...t, uid: remap(t.uid) }));
+    if (state.currentEntryUid !== null) {
+        state.currentEntryUid = remap(state.currentEntryUid);
+    }
+    state.unsavedEntries = new Set([...state.unsavedEntries].map(remap));
+    state.selectedEntries = new Set([...state.selectedEntries].map(remap));
+
+    // Per-uid form IDs are now stale; rebuild the open forms.
+    renderEditorForms();
+    return renames;
 }
 
 /**
@@ -138,9 +183,11 @@ export function insertEntryAbove(targetUid) {
     state.lorebookData.entries[uid] = entry;
     markEntryUnsaved(uid);
 
+    const renames = reseqAll();
+    const finalUid = renames.get(uid) ?? uid;
     renderSidebar();
     updateSidebarHeader();
-    openEntry(uid);
+    openEntry(finalUid);
 }
 
 /**
@@ -161,9 +208,11 @@ export function insertEntryBelow(targetUid) {
     state.lorebookData.entries[uid] = entry;
     markEntryUnsaved(uid);
 
+    const renames = reseqAll();
+    const finalUid = renames.get(uid) ?? uid;
     renderSidebar();
     updateSidebarHeader();
-    openEntry(uid);
+    openEntry(finalUid);
 }
 
 /**
@@ -185,6 +234,50 @@ export function moveEntry(uid, delta) {
 
     markEntryUnsaved(a.uid);
     markEntryUnsaved(b.uid);
+    reseqAll();
+    renderSidebar();
+}
+
+/**
+ * Rename an entry's UID. If the target UID is already taken, swap with the
+ * occupant. With auto-sync on, reseqAll() runs afterwards and re-normalises
+ * everything by position anyway, so the only durable effect of this in
+ * auto-sync mode is moving the entry to that sort slot (since UID drives
+ * sort idx via the reseq). In manual mode (auto-sync off) the renamed UID
+ * sticks.
+ */
+export function setEntryUid(uid, newUid) {
+    if (!state.lorebookData?.entries) return;
+    if (uid === newUid) return;
+    const entry = state.lorebookData.entries[uid];
+    if (!entry) return;
+
+    const dict = state.lorebookData.entries;
+    const occupant = dict[newUid];
+    if (occupant) {
+        // Swap: move occupant aside to the source uid.
+        occupant.uid = uid;
+        occupant.displayIndex = uid;
+        dict[uid] = occupant;
+    } else {
+        delete dict[uid];
+    }
+    entry.uid = newUid;
+    entry.displayIndex = newUid;
+    dict[newUid] = entry;
+
+    // Remap open-tab references.
+    const remap = id => (id === uid ? newUid : (occupant && id === newUid ? uid : id));
+    state.openTabs = state.openTabs.map(t => ({ ...t, uid: remap(t.uid) }));
+    if (state.currentEntryUid !== null) state.currentEntryUid = remap(state.currentEntryUid);
+    state.unsavedEntries = new Set([...state.unsavedEntries].map(remap));
+    state.selectedEntries = new Set([...state.selectedEntries].map(remap));
+
+    markEntryUnsaved(newUid);
+    if (occupant) markEntryUnsaved(uid);
+
+    reseqAll();
+    renderEditorForms();
     renderSidebar();
 }
 
@@ -210,6 +303,7 @@ export function setEntryOrder(uid, newOrder) {
     });
     entry.order = newOrder;
     markEntryUnsaved(uid);
+    reseqAll();
     renderSidebar();
 }
 
@@ -237,11 +331,11 @@ export function deleteEntry(uid) {
 
     // Close tab if open
     closeTab(uid);
-    
-    // Update UI
+
+    reseqAll();
     renderSidebar();
     updateSidebarHeader();
-    
+
     showToast('Entry deleted', 'success');
 }
 
@@ -273,11 +367,13 @@ export function duplicateEntry(uid) {
 
     state.lorebookData.entries[newUid] = newEntry;
     markEntryUnsaved(newUid);
-    
+
+    const renames = reseqAll();
+    const finalUid = renames.get(newUid) ?? newUid;
     renderSidebar();
     updateSidebarHeader();
-    openEntry(newUid);
-    
+    openEntry(finalUid);
+
     showToast('Entry duplicated', 'success');
     return newEntry;
 }

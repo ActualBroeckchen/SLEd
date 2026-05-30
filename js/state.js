@@ -28,9 +28,40 @@ export const state = {
         txtIncludeSecondaryKeys: false,
         txtIncludeStatus: false,
         txtIncludeComments: false,
-        txtIncludeOrder: false
+        txtIncludeOrder: false,
+        // Sidebar display: 'order' (default) or 'uid' — which number the
+        // .entry-order-input renders + edits. Affects display + inline-edit
+        // target, not drag/arrow behaviour (those always work on position).
+        sidebarShowField: 'order'
     }
 };
+
+/**
+ * Per-lorebook config defaults. Stored on
+ * state.lorebookData.extensions.sled so it round-trips with the JSON.
+ */
+export const LOREBOOK_CONFIG_DEFAULTS = {
+    autoSyncOrder: true,
+    orderBaseline: 1,
+    orderStep: 1
+};
+
+export function getLorebookConfig() {
+    const ext = state.lorebookData?.extensions;
+    if (!ext) return { ...LOREBOOK_CONFIG_DEFAULTS };
+    if (!ext.sled) ext.sled = { ...LOREBOOK_CONFIG_DEFAULTS };
+    return ext.sled;
+}
+
+export function setLorebookConfig(partial) {
+    if (!state.lorebookData) return;
+    if (!state.lorebookData.extensions) state.lorebookData.extensions = {};
+    state.lorebookData.extensions.sled = {
+        ...LOREBOOK_CONFIG_DEFAULTS,
+        ...(state.lorebookData.extensions.sled || {}),
+        ...partial
+    };
+}
 
 const SETTINGS_KEY = 'sled-settings';
 const SESSION_KEY = 'sled-session';

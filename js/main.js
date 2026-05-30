@@ -8,7 +8,10 @@ import {
     loadSettings,
     saveSettings,
     loadSession,
-    saveSession
+    saveSession,
+    scheduleSave,
+    getLorebookConfig,
+    setLorebookConfig
 } from './state.js';
 import { elements, initElements } from './elements.js';
 import { debounce } from './utils.js';
@@ -127,7 +130,10 @@ function setupHeaderHandlers() {
         elements.searchBtn.addEventListener('click', openSearchModal);
     }
     if (elements.settingsBtn) {
-        elements.settingsBtn.addEventListener('click', () => openModal('settingsModal'));
+        elements.settingsBtn.addEventListener('click', () => {
+            syncLorebookSettingsToInputs();
+            openModal('settingsModal');
+        });
     }
     if (elements.helpBtn) {
         elements.helpBtn.addEventListener('click', () => openModal('helpModal'));
@@ -174,6 +180,13 @@ function setupSidebarHandlers() {
             state.settings.sidebarZoom = e.target.value;
             saveSettings();
             applySidebarZoom();
+            renderSidebar();
+        });
+    }
+    if (elements.sidebarShowField) {
+        elements.sidebarShowField.addEventListener('change', (e) => {
+            state.settings.sidebarShowField = e.target.value;
+            saveSettings();
             renderSidebar();
         });
     }
@@ -286,6 +299,66 @@ function setupSettingsHandlers() {
             applyDyslexiaFont();
         });
     }
+
+    // Lorebook-level (per-file) settings — persisted in
+    // state.lorebookData.extensions.sled so they round-trip with the JSON.
+    if (elements.lbAutoSyncOrder) {
+        elements.lbAutoSyncOrder.addEventListener('change', (e) => {
+            if (!state.lorebookData) { e.target.checked = false; return; }
+            const turningOn = e.target.checked && !getLorebookConfig().autoSyncOrder;
+            if (turningOn && !confirmAutoSyncOn()) {
+                e.target.checked = false;
+                return;
+            }
+            setLorebookConfig({ autoSyncOrder: e.target.checked });
+            applyLorebookSettingsChange();
+        });
+    }
+    if (elements.lbOrderBaseline) {
+        elements.lbOrderBaseline.addEventListener('change', (e) => {
+            if (!state.lorebookData) return;
+            const v = parseInt(e.target.value, 10);
+            if (Number.isNaN(v)) return;
+            setLorebookConfig({ orderBaseline: v });
+            applyLorebookSettingsChange();
+        });
+    }
+    if (elements.lbOrderStep) {
+        elements.lbOrderStep.addEventListener('change', (e) => {
+            if (!state.lorebookData) return;
+            const v = Math.max(1, parseInt(e.target.value, 10));
+            if (Number.isNaN(v)) return;
+            setLorebookConfig({ orderStep: v });
+            applyLorebookSettingsChange();
+        });
+    }
+}
+
+function syncLorebookSettingsToInputs() {
+    const cfg = getLorebookConfig();
+    if (elements.lbAutoSyncOrder) elements.lbAutoSyncOrder.checked = !!cfg.autoSyncOrder;
+    if (elements.lbOrderBaseline) elements.lbOrderBaseline.value = cfg.orderBaseline ?? 1;
+    if (elements.lbOrderStep) elements.lbOrderStep.value = cfg.orderStep ?? 1;
+    // Greyed out when no lorebook loaded
+    const disabled = !state.lorebookData;
+    [elements.lbAutoSyncOrder, elements.lbOrderBaseline, elements.lbOrderStep].forEach(el => {
+        if (el) el.disabled = disabled;
+    });
+}
+
+function applyLorebookSettingsChange() {
+    import('./entries.js').then(({ reseqAll }) => {
+        reseqAll();
+        import('./sidebar.js').then(({ renderSidebar }) => renderSidebar());
+        scheduleSave();
+    });
+}
+
+function confirmAutoSyncOn() {
+    return confirm(
+        'Turning on Sync UID and Order will rewrite every entry\'s UID and ' +
+        'Order to match its sidebar position. Continue?'
+    );
 }
 
 /* ---------- Search modal handlers ---------- */

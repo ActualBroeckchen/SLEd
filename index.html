@@ -69,6 +69,10 @@
                     <button class="icon-btn small" id="addEntryBtn" aria-label="Add new entry" title="Add new entry">
                         <span class="material-symbols-rounded">add</span>
                     </button>
+                    <select id="sidebarShowField" class="zoom-select" aria-label="Sidebar number field" title="Show Order or UID">
+                        <option value="order" selected>Order</option>
+                        <option value="uid">UID</option>
+                    </select>
                     <select id="sidebarZoom" class="zoom-select" aria-label="Sidebar zoom level">
                         <option value="compact">Compact</option>
                         <option value="normal" selected>Normal</option>
@@ -223,6 +227,28 @@
                         </label>
                         <small class="form-hint">Theme and editor font are in the header toolbar.</small>
                     </div>
+                </fieldset>
+
+                <fieldset class="form-fieldset" id="lorebookSettingsFieldset">
+                    <legend>Lorebook</legend>
+                    <div class="form-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="lbAutoSyncOrder">
+                            <span>Sync UID and Order with sidebar position</span>
+                        </label>
+                        <small class="form-hint">When on, drag / arrow / inline-edit / insert / delete renumbers every entry's UID and Order to match its position. Turn off to keep UIDs and Orders fixed.</small>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="form-label" for="lbOrderBaseline">Order baseline</label>
+                            <input type="number" id="lbOrderBaseline" class="form-input" value="1" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label" for="lbOrderStep">Order step</label>
+                            <input type="number" id="lbOrderStep" class="form-input" value="1" min="1">
+                        </div>
+                    </div>
+                    <small class="form-hint">Order = baseline + position × step. Use baseline 100, step 10 to leave gaps so a co-loaded lorebook can interleave.</small>
                 </fieldset>
 
                 <fieldset class="form-fieldset">

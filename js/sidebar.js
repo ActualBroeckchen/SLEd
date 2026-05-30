@@ -71,6 +71,7 @@ export function renderSidebar() {
 
     const zoom = state.settings.sidebarZoom || 'normal';
     const maxPillKeys = zoom === 'detailed' ? 8 : 3;
+    const showField = state.settings.sidebarShowField || 'order';
 
     elements.entryList.innerHTML = entries.map(entry => {
         const isActive = entry.uid === state.currentEntryUid;
@@ -78,7 +79,11 @@ export function renderSidebar() {
         const isUnsaved = state.unsavedEntries.has(entry.uid);
         const statusIcon = getStatusIcon(entry);
         const keys = entry.key || [];
-        const order = entry.order ?? 0;
+        // Number rendered in the inline-edit input. Toggle in sidebar
+        // header switches between Order (what controls ST injection) and
+        // UID (the dict key). With auto-sync on the two are linked; with
+        // it off the user can edit either independently.
+        const displayValue = showField === 'uid' ? (entry.uid ?? 0) : (entry.order ?? 0);
 
         const visibleKeys = keys.slice(0, maxPillKeys);
         const moreCount = Math.max(0, keys.length - maxPillKeys);
@@ -97,7 +102,7 @@ export function renderSidebar() {
                  data-uid="${entry.uid}"
                  draggable="true">
                 <input type="checkbox" class="entry-checkbox" ${isSelected ? 'checked' : ''} aria-label="Select entry">
-                <input type="number" class="entry-order-input" value="${order}" min="0" aria-label="Entry order" title="Order">
+                <input type="number" class="entry-order-input" value="${displayValue}" min="0" aria-label="${showField === 'uid' ? 'Entry UID' : 'Entry order'}" title="${showField === 'uid' ? 'UID — dict key' : 'Order — injection priority'}" data-field="${showField}">
                 <div class="entry-status">${statusIcon}</div>
                 <div class="entry-info">
                     <div class="entry-name">${escapeHtml(entry.comment || `Entry ${entry.uid}`)}</div>
@@ -179,7 +184,8 @@ function setupSidebarEventListeners() {
             });
         }
 
-        // Inline order edit
+        // Inline order/UID edit — dispatch based on what the sidebar
+        // is currently showing (the input's data-field).
         const orderInput = item.querySelector('.entry-order-input');
         if (orderInput) {
             orderInput.addEventListener('click', e => e.stopPropagation());
@@ -187,7 +193,11 @@ function setupSidebarEventListeners() {
                 e.stopPropagation();
                 const value = parseInt(e.target.value, 10);
                 if (Number.isNaN(value)) return;
-                import('./entries.js').then(({ setEntryOrder }) => setEntryOrder(uid, value));
+                const field = e.target.dataset.field || 'order';
+                import('./entries.js').then(mod => {
+                    if (field === 'uid') mod.setEntryUid(uid, value);
+                    else mod.setEntryOrder(uid, value);
+                });
             });
         }
 
@@ -280,14 +290,20 @@ function moveEntriesBefore(uids, targetUid) {
     remaining.splice(targetIdx, 0, ...moving);
 
     // 1-based reseq to match inline-edit convention and the typical
-    // SillyTavern source file (orders start at 1, contiguous).
+    // SillyTavern source file (orders start at 1, contiguous). When
+    // auto-sync is on, reseqAll() will re-normalise these to baseline +
+    // step * idx and rename UIDs, so this initial pass is just to keep
+    // the relative ordering stable while reseqAll() runs.
     remaining.forEach((entry, index) => {
         entry.order = index + 1;
     });
 
     moving.forEach(e => state.unsavedEntries.add(e.uid));
     state.hasUnsavedChanges = true;
-    renderSidebar();
+    import('./entries.js').then(({ reseqAll }) => {
+        reseqAll();
+        renderSidebar();
+    });
 }
 
 export function setFilter(text) {
