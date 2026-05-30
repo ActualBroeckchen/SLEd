@@ -298,10 +298,9 @@ function moveEntriesBefore(uids, targetUid) {
         entry.order = index + 1;
     });
 
-    moving.forEach(e => state.unsavedEntries.add(e.uid));
-    state.hasUnsavedChanges = true;
-    import('./entries.js').then(({ reseqAll }) => {
+    import('./entries.js').then(({ reseqAll, persistReorder }) => {
         reseqAll();
+        persistReorder();
         renderSidebar();
     });
 }

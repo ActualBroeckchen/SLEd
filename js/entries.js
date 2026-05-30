@@ -13,6 +13,33 @@ import {
     showEditor,
     renderEditorForms
 } from './ui.js';
+
+/**
+ * Sidebar reorder operations (drag, arrow, inline-edit) change entry.order
+ * (and sometimes entry.uid) without going through the entry form. So we
+ * persist with scheduleSave directly instead of markEntryUnsaved — the
+ * orange dot is for "the form has typed-in changes not yet committed to
+ * state", which doesn't apply here. Setting the dot would also tempt the
+ * user to click Save, which would clobber the new order with whatever the
+ * (now stale) Order Number field in the form still shows.
+ *
+ * After the state change, refresh the Order Number field on any open form
+ * whose uid was affected, so the form stays in sync without clobbering
+ * whatever input the user happens to have focused.
+ */
+export function persistReorder() {
+    if (!state.lorebookData?.entries) return;
+    for (const tab of state.openTabs) {
+        const entry = state.lorebookData.entries[tab.uid];
+        if (!entry) continue;
+        const field = document.getElementById('orderNumber_' + tab.uid);
+        if (field && document.activeElement !== field) {
+            field.value = entry.order ?? 0;
+        }
+    }
+    state.hasUnsavedChanges = state.unsavedEntries.size > 0;
+    scheduleSave();
+}
 import { addTab, switchToTab, closeTab, updateTabTitle } from './tabs.js';
 import { renderSidebar } from './sidebar.js';
 
@@ -232,9 +259,8 @@ export function moveEntry(uid, delta) {
     const b = entries[swapIdx];
     [a.order, b.order] = [b.order, a.order];
 
-    markEntryUnsaved(a.uid);
-    markEntryUnsaved(b.uid);
     reseqAll();
+    persistReorder();
     renderSidebar();
 }
 
@@ -273,11 +299,9 @@ export function setEntryUid(uid, newUid) {
     state.unsavedEntries = new Set([...state.unsavedEntries].map(remap));
     state.selectedEntries = new Set([...state.selectedEntries].map(remap));
 
-    markEntryUnsaved(newUid);
-    if (occupant) markEntryUnsaved(uid);
-
     reseqAll();
     renderEditorForms();
+    persistReorder();
     renderSidebar();
 }
 
@@ -302,8 +326,8 @@ export function setEntryOrder(uid, newOrder) {
         }
     });
     entry.order = newOrder;
-    markEntryUnsaved(uid);
     reseqAll();
+    persistReorder();
     renderSidebar();
 }
 
@@ -322,15 +346,24 @@ export function deleteEntry(uid) {
         return;
     }
     
-    // Remove entry
+    // Remove entry — capture its order first so we can close the gap.
+    const gapOrder = state.lorebookData.entries[uid].order ?? 0;
     delete state.lorebookData.entries[uid];
     state.unsavedEntries.delete(uid);
     state.selectedEntries.delete(uid);
-    state.hasUnsavedChanges = true;
+    state.hasUnsavedChanges = state.unsavedEntries.size > 0;
     scheduleSave();
 
     // Close tab if open
     closeTab(uid);
+
+    // Compress orders so neighbouring entries fill the gap. This always
+    // runs (independent of auto-sync) so the sidebar list stays
+    // contiguous after a delete. reseqAll() below will then re-normalise
+    // to baseline + step if auto-sync is on.
+    Object.values(state.lorebookData.entries).forEach(e => {
+        if ((e.order ?? 0) > gapOrder) e.order = (e.order ?? 0) - 1;
+    });
 
     reseqAll();
     renderSidebar();
