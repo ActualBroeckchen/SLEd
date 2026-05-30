@@ -167,6 +167,28 @@ export function insertEntryBelow(targetUid) {
 }
 
 /**
+ * Move an entry one slot up (delta = -1) or down (delta = +1) in the
+ * order-sorted list, swapping with its neighbour. No-op at the ends.
+ */
+export function moveEntry(uid, delta) {
+    if (!state.lorebookData?.entries) return;
+    const entries = Object.values(state.lorebookData.entries)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    const idx = entries.findIndex(e => e.uid === uid);
+    if (idx === -1) return;
+    const swapIdx = idx + delta;
+    if (swapIdx < 0 || swapIdx >= entries.length) return;
+
+    const a = entries[idx];
+    const b = entries[swapIdx];
+    [a.order, b.order] = [b.order, a.order];
+
+    markEntryUnsaved(a.uid);
+    markEntryUnsaved(b.uid);
+    renderSidebar();
+}
+
+/**
  * Change an entry's order (move it within the list) without renaming UIDs.
  * Pulls the entry out and re-inserts at the target order, shifting others.
  */

@@ -495,12 +495,17 @@ dialog {
     width: 3.5em;
     padding: 2px 4px;
     font-size: 0.75rem;
-    background: transparent;
-    border: 1px solid transparent;
+    /* Subtle background + dotted border so users can see it's editable at
+       rest — fully transparent looked like a static label. Hover/focus
+       state below promotes it to a normal input look. */
+    background: var(--bg-tertiary);
+    border: 1px dotted var(--border);
     border-radius: var(--border-radius);
     color: var(--text-secondary);
     text-align: center;
+    cursor: text;
     -moz-appearance: textfield;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .entry-order-input::-webkit-outer-spin-button,

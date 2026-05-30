@@ -106,6 +106,12 @@ export function renderSidebar() {
                     ${contentPreview ? `<div class="entry-content-preview">${escapeHtml(contentPreview)}</div>` : ''}
                 </div>
                 <div class="entry-actions">
+                    <button class="icon-btn small entry-action-move-up" title="Move up" aria-label="Move up">
+                        <span class="material-symbols-rounded">arrow_upward</span>
+                    </button>
+                    <button class="icon-btn small entry-action-move-down" title="Move down" aria-label="Move down">
+                        <span class="material-symbols-rounded">arrow_downward</span>
+                    </button>
                     <button class="icon-btn small entry-action-insert-above" title="Insert entry above" aria-label="Insert above">
                         <span class="material-symbols-rounded">add_row_above</span>
                     </button>
@@ -194,6 +200,8 @@ function setupSidebarEventListeners() {
                 import('./entries.js').then(mod);
             });
         };
+        wire('.entry-action-move-up', ({ moveEntry }) => moveEntry(uid, -1));
+        wire('.entry-action-move-down', ({ moveEntry }) => moveEntry(uid, 1));
         wire('.entry-action-insert-above', ({ insertEntryAbove }) => insertEntryAbove(uid));
         wire('.entry-action-insert-below', ({ insertEntryBelow }) => insertEntryBelow(uid));
         wire('.entry-action-copy', ({ duplicateEntry }) => duplicateEntry(uid));
@@ -271,8 +279,10 @@ function moveEntriesBefore(uids, targetUid) {
 
     remaining.splice(targetIdx, 0, ...moving);
 
+    // 1-based reseq to match inline-edit convention and the typical
+    // SillyTavern source file (orders start at 1, contiguous).
     remaining.forEach((entry, index) => {
-        entry.order = index;
+        entry.order = index + 1;
     });
 
     moving.forEach(e => state.unsavedEntries.add(e.uid));
