@@ -365,6 +365,9 @@ export function wireKeywordPillInput(container) {
     });
 
     input.addEventListener('keydown', (e) => {
+        // Comma inside an unclosed regex literal is part of the regex
+        // (e.g. .{0,15} quantifier, (a|b,c) group) — let it through.
+        if (e.key === ',' && isInsideUnclosedRegex(input.value)) return;
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
             if (commit(input.value)) notify();
@@ -379,13 +382,17 @@ export function wireKeywordPillInput(container) {
         }
     });
 
-    // Pasting a comma-separated list adds them as separate pills
+    // Pasting a comma-separated list adds them as separate pills.
+    // Uses splitKeywords so commas inside regex bodies (.{0,15}, (a|b,c))
+    // don't fragment a single regex into broken pieces.
     input.addEventListener('paste', (e) => {
         const text = e.clipboardData?.getData('text');
-        if (!text || !text.includes(',')) return;
+        if (!text) return;
+        const pieces = splitKeywords(text);
+        if (pieces.length <= 1) return;  // single value, let default paste fill the input
         e.preventDefault();
         let added = false;
-        for (const piece of text.split(',')) {
+        for (const piece of pieces) {
             if (commit(piece)) added = true;
         }
         input.value = '';
@@ -397,4 +404,64 @@ export function wireKeywordPillInput(container) {
         if (commit(input.value)) notify();
         input.value = '';
     });
+}
+
+/**
+ * Split a string of comma-separated keywords into individual values while
+ * preserving commas that live inside regex literals (e.g. `.{0,15}` or
+ * `(a|b,c)`). A regex literal starts with `/` and ends with the matching
+ * unescaped `/[flags]`. Anything else is treated as plain text.
+ */
+export function splitKeywords(text) {
+    if (!text) return [];
+    const out = [];
+    let cur = '';
+    let inRegex = false;
+    let escaped = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (escaped) { cur += c; escaped = false; continue; }
+        if (c === '\\') { cur += c; escaped = true; continue; }
+        // Enter regex mode only when the slash starts a fresh piece — so
+        // `foo/bar` (no leading slash) stays a single literal keyword.
+        if (!inRegex && c === '/' && cur.trim() === '') {
+            inRegex = true;
+            cur += c;
+            continue;
+        }
+        if (inRegex && c === '/') {
+            cur += c;
+            // Consume trailing flag letters so `/foo/i` ends on the i.
+            while (i + 1 < text.length && /[a-zA-Z]/.test(text[i + 1])) {
+                cur += text[++i];
+            }
+            inRegex = false;
+            continue;
+        }
+        if (!inRegex && c === ',') {
+            if (cur.trim()) out.push(cur.trim());
+            cur = '';
+            continue;
+        }
+        cur += c;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+}
+
+/**
+ * Return true if the input text starts a regex literal that hasn't been
+ * closed yet — used by the keydown handler so a `,` keypress in the
+ * middle of typing a regex falls through as a literal character.
+ */
+export function isInsideUnclosedRegex(text) {
+    if (!text || text[0] !== '/') return false;
+    let escaped = false;
+    for (let i = 1; i < text.length; i++) {
+        const c = text[i];
+        if (escaped) { escaped = false; continue; }
+        if (c === '\\') { escaped = true; continue; }
+        if (c === '/') return false;  // closed
+    }
+    return true;
 }
