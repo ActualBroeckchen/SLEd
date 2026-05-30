@@ -43,6 +43,7 @@ export const elements = {
     newLorebookBtn: null,
 
     // Action bar
+    actionNew: null,
     actionImport: null,
     actionExport: null,
     actionMerge: null,
@@ -110,6 +111,7 @@ export function initElements() {
     elements.newLorebookBtn = document.getElementById('newLorebookBtn');
 
     // Action bar
+    elements.actionNew = document.getElementById('actionNew');
     elements.actionImport = document.getElementById('actionImport');
     elements.actionExport = document.getElementById('actionExport');
     elements.actionMerge = document.getElementById('actionMerge');

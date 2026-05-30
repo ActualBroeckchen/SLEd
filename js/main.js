@@ -193,6 +193,9 @@ function setupWelcomeHandlers() {
 /* ---------- Action bar ---------- */
 
 function setupActionBarHandlers() {
+    if (elements.actionNew) {
+        elements.actionNew.addEventListener('click', createNewLorebook);
+    }
     if (elements.actionImport && elements.fileInput) {
         elements.actionImport.addEventListener('click', () => elements.fileInput.click());
     }
